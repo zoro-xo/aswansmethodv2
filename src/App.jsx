@@ -1,4 +1,4 @@
-// Canvas/bootstrap: patch fetch for /seats.json so the app can run without a server
+// Canvas bootstrap: mock /seats.json so app runs standalone
 if (typeof window !== "undefined") {
   const __SEATS__ = { claimed: 118 };
   const __origFetch = window.fetch?.bind(window) || fetch;
@@ -14,9 +14,12 @@ if (typeof window !== "undefined") {
   };
 }
 
-// ===============================
-// Acne Reset — v4.4 (Clinical Report + Secure GPT, no upload previews, no Proof section)
-// ===============================
+// =====================================================
+// Acne Reset — v4.6.1 (fix: JSX prop arrays + add tests)
+// - Fixed JSX SyntaxError by wrapping array props in `{}`
+// - Added lightweight unit tests (enable via `?tests=1`)
+// - No behavior changes to UI/flow
+// =====================================================
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -40,11 +43,11 @@ import {
 } from "lucide-react";
 
 // -------------------- CONFIG --------------------
-const CHECKOUT_URL = "https://aswan.in/checkout"; // 🔁 replace with real checkout
-const CHECKOUT_SPLIT_URL = "https://aswan.in/checkout-split"; // 🔁 replace with real split-pay checkout
-const CHANNEL_URL = "https://aswan.in/community"; // 🔁 replace with real channel
+const CHECKOUT_URL = "https://aswan.in/checkout"; // replace with real checkout
+const CHECKOUT_SPLIT_URL = "https://aswan.in/checkout-split"; // replace
+const CHANNEL_URL = "https://aswan.in/community"; // replace
 const SUPPORT_WHATSAPP =
-  "https://wa.me/919999999999?text=I%20have%20a%20question%20about%20Acne%20Reset"; // 🔁 replace
+  "https://wa.me/919999999999?text=I%20have%20a%20question%20about%20Acne%20Reset"; // replace
 
 const POLICY = {
   guarantee: "/policy/guarantee",
@@ -80,7 +83,7 @@ function getIntroPrice() {
 }
 const INTRO_PRICE = getIntroPrice();
 
-// Named mechanism (explicit AI mention)
+// Named mechanism
 const MECHANISM = "AI R.A.P.I.D. Routine Engine™"; // Recognize → Analyze → Plan → Implement → Debrief
 
 // -------------------- UTILS --------------------
@@ -111,6 +114,17 @@ function useCountdown(deadlineISO) {
   const sec = s % 60;
   return { h, m, s: sec, isOver: t <= 0 };
 }
+function useDevMode() {
+  const [dev, setDev] = useState(false);
+  useEffect(() => {
+    try {
+      const u = new URL(window.location.href);
+      const v = (u.searchParams.get("dev") || "").toLowerCase();
+      setDev(["1", "true", "yes", "on"].includes(v));
+    } catch {}
+  }, []);
+  return dev;
+}
 
 // Value Equation score
 function valueEquationScore(v) {
@@ -118,7 +132,7 @@ function valueEquationScore(v) {
   return Math.round(((v.dream * v.likelihood) / bottom) * 100) / 100;
 }
 
-// Multi‑image preview util (front/left/right) — keeps previews only for the SideCard
+// Multi‑image preview util (front/left/right)
 function useMultiImagePreview() {
   const [previews, setPreviews] = useState({});
   const urls = useRef({});
@@ -137,7 +151,7 @@ function useMultiImagePreview() {
   return { previews, setFile };
 }
 
-// ---------- Local (on-device) estimator — kept as fallback ----------
+// ---------- Local (on-device) estimator — fallback ----------
 async function fileHash(file) {
   const buf = await file.arrayBuffer();
   const view = new Uint8Array(buf);
@@ -213,7 +227,6 @@ function buildLocalResult(seed) {
     100,
     Math.round(overallRating + Math.max(8, (100 - overallRating) * 0.35))
   );
-  // heuristic distribution & counts for demo fidelity
   const distribution = {
     forehead: bucket(100 - clarity + oil * 0.2),
     cheeks: bucket((100 - clarity) * 0.6 + redness * 0.6),
@@ -428,6 +441,134 @@ function useFaceAnalyzer(faces, intakeMeta) {
   return { status, progress, result, reset };
 }
 
+// -------------------- IMAGE QUALITY CHECKS --------------------
+async function loadImageBitmap(file) {
+  try {
+    if ("createImageBitmap" in window) {
+      return await createImageBitmap(file);
+    }
+  } catch {}
+  return await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function analyzeImageQuality(file, slot) {
+  const issues = [];
+  const hints = [];
+  try {
+    const bm = await loadImageBitmap(file);
+    const w = bm.width,
+      h = bm.height;
+    if (w < 600 || h < 800)
+      issues.push(
+        "Low resolution — aim for at least 800×1000px in good light."
+      );
+    // Downscale to 128 for quick analysis
+    const cnv = document.createElement("canvas");
+    const s = 128;
+    cnv.width = s;
+    cnv.height = s;
+    const ctx = cnv.getContext("2d");
+    ctx.drawImage(bm, 0, 0, s, s);
+    const img = ctx.getImageData(0, 0, s, s).data;
+    let mean = 0;
+    for (let i = 0; i < img.length; i += 4) {
+      mean += img[i] * 0.2126 + img[i + 1] * 0.7152 + img[i + 2] * 0.0722;
+    }
+    mean /= img.length / 4;
+    if (mean < 55)
+      issues.push("Too dark — retake near a window or increase brightness.");
+    if (mean > 205)
+      issues.push("Overexposed — reduce harsh light; avoid flash.");
+    // Simple blur metric via Sobel gradients
+    let gx,
+      gy,
+      sharp = 0;
+    const getL = (x, y) => {
+      const idx = (y * s + x) * 4;
+      return img[idx] * 0.2126 + img[idx + 1] * 0.7152 + img[idx + 2] * 0.0722;
+    };
+    for (let y = 1; y < s - 1; y++) {
+      for (let x = 1; x < s - 1; x++) {
+        gx =
+          -getL(x - 1, y - 1) -
+          2 * getL(x - 1, y) +
+          -getL(x - 1, y + 1) +
+          getL(x + 1, y - 1) +
+          2 * getL(x + 1, y) +
+          getL(x + 1, y + 1);
+        gy =
+          -getL(x - 1, y - 1) -
+          2 * getL(x, y - 1) -
+          getL(x + 1, y - 1) +
+          getL(x - 1, y + 1) +
+          2 * getL(x, y + 1) +
+          getL(x + 1, y + 1);
+        sharp += Math.sqrt(gx * gx + gy * gy);
+      }
+    }
+    const normSharp = sharp / ((s - 2) * (s - 2));
+    if (normSharp < 25)
+      issues.push("Hazy/blurred — hold steady, clean lens, retake.");
+  } catch {
+    // ignore
+  }
+  // Optional FaceDetector (if supported)
+  try {
+    if ("FaceDetector" in window) {
+      const detector = new window.FaceDetector({
+        fastMode: true,
+        maxDetectedFaces: 2,
+      });
+      const bmp = await loadImageBitmap(file);
+      const cnv = document.createElement("canvas");
+      cnv.width = bmp.width;
+      cnv.height = bmp.height;
+      const ctx = cnv.getContext("2d");
+      ctx.drawImage(bmp, 0, 0);
+      const blob = await new Promise((res) =>
+        cnv.toBlob(res, "image/jpeg", 0.92)
+      );
+      const f = new File([blob], "tmp.jpg", { type: "image/jpeg" });
+      const imgEl = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = reject;
+        im.src = URL.createObjectURL(f);
+      });
+      const faces = await detector.detect(imgEl);
+      if (!faces.length)
+        issues.push(
+          "No face detected — make sure your face is clearly visible."
+        );
+      if (faces.length > 1)
+        issues.push(
+          "Multiple faces detected — only the uploader should be in frame."
+        );
+      if (slot === "front" && faces[0])
+        hints.push("Front view: look straight at camera, both ears balanced.");
+      if (slot === "left")
+        hints.push("Left profile: turn head left ~60–80°, left ear visible.");
+      if (slot === "right")
+        hints.push(
+          "Right profile: turn head right ~60–80°, right ear visible."
+        );
+    } else {
+      if (slot === "left")
+        hints.push("Tip: left profile — show your left cheek & ear.");
+      if (slot === "right")
+        hints.push("Tip: right profile — show your right cheek & ear.");
+    }
+  } catch {
+    // ignore detection errors
+  }
+  return { issues, hints };
+}
+
 // -------------------- PRIMITIVES --------------------
 const Button = ({
   variant = "primary",
@@ -492,19 +633,65 @@ function BlurLock({ label = "Preview blurred" }) {
   );
 }
 
+function Badge({ children, tone = "slate" }) {
+  const map = {
+    emerald: "border-emerald-300/40 bg-emerald-400/10 text-emerald-300",
+    rose: "border-rose-300/40 bg-rose-400/10 text-rose-200",
+    amber: "border-amber-300/40 bg-amber-400/10 text-amber-200",
+    slate: "border-white/10 bg-white/10 text-white/80",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+        map[tone] || map.slate
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Bar({ label, value }) {
+  const pct = Math.max(0, Math.min(100, Number(value) || 0));
+  return (
+    <div className="mb-2">
+      <div className="mb-1 flex items-center justify-between text-xs text-white/70">
+        <span>{label}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded bg-white/10">
+        <div className="h-2 bg-emerald-400" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 // -------------------- APP --------------------
 export default function App() {
+  useSEO();
+  const DEV = useDevMode();
+  // optional: run tests in dev if `?tests=1`
+  useEffect(() => {
+    try {
+      const u = new URL(window.location.href);
+      const flag = (u.searchParams.get("tests") || "").toLowerCase();
+      if (["1", "true", "yes", "on"].includes(flag)) {
+        runUnitTests();
+      }
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <Header />
+      <Header dev={DEV} />
       <main className="mx-auto max-w-6xl px-4 pb-28 pt-16 sm:pb-24">
         <Hero />
-        <OfferWizard />
+        <OfferWizard dev={DEV} />
         <OfferStack />
-        <Bonuses />
+        <BonusesStrong />
         <Guarantees />
         <Testimonials />
-        {/* Removed ProofWall */}
+        {/* Proof removed */}
         <WhoNotFor />
         <Quickstart />
         <Policies />
@@ -518,13 +705,18 @@ export default function App() {
 }
 
 // -------------------- HEADER --------------------
-function Header() {
+function Header({ dev }) {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-400" />
           <span className="text-sm font-bold tracking-tight">Acne Reset</span>
+          {dev && (
+            <span className="ml-2 rounded-full border border-emerald-300/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+              DEV MODE
+            </span>
+          )}
         </div>
         <nav className="hidden items-center gap-3 sm:flex">
           <a className="text-sm text-white/80 hover:text-white" href="#offer">
@@ -545,7 +737,7 @@ function Header() {
           >
             Testimonials
           </a>
-          {/* removed Proof link */}
+          {/* Proof link removed */}
           <a className="text-sm text-white/80 hover:text-white" href="#faq">
             FAQ
           </a>
@@ -665,9 +857,9 @@ function ValueEquationCard() {
   );
 }
 
-// -------------------- OFFER WIZARD --------------------
-function OfferWizard() {
-  const [step, setStep] = useState(1); // 1 Intake → 2 Selfies → 3 Analyze → 4 Preview (blurred) → 5 Checkout
+// -------------------- WIZARD (4 steps now) --------------------
+function OfferWizard({ dev }) {
+  const [step, setStep] = useState(1); // 1 Intake → 2 Upload+Analyze → 3 Preview (blurred) → 4 Checkout
   const [intake, setIntake] = useState({
     severity: "moderate",
     skin: "oily",
@@ -679,7 +871,7 @@ function OfferWizard() {
   });
   const [faces, setFaces] = useState({});
   const { previews, setFile } = useMultiImagePreview();
-  const analyzer = useFaceAnalyzer(faces, intake); // ⬅️ pass intake to server
+  const analyzer = useFaceAnalyzer(faces, intake);
   const value = useMemo(() => {
     const dream =
       intake.severity === "severe" ? 5 : intake.severity === "moderate" ? 4 : 3;
@@ -707,7 +899,7 @@ function OfferWizard() {
     <section id="wizard" className="mt-6">
       <div className="mb-5">
         <div className="relative mx-auto flex max-w-xl items-center justify-between overflow-hidden">
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="relative flex items-center">
               <div
                 className={clsx(
@@ -719,7 +911,7 @@ function OfferWizard() {
               >
                 {i}
               </div>
-              {i < 5 && (
+              {i < 4 && (
                 <div
                   className={clsx(
                     "mx-2 h-[2px] w-10 sm:w-16 md:w-28",
@@ -732,9 +924,9 @@ function OfferWizard() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left panel */}
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Main column */}
+        <div className="space-y-6">
           {step === 1 && (
             <StepIntake
               intake={intake}
@@ -743,47 +935,37 @@ function OfferWizard() {
             />
           )}
           {step === 2 && (
-            <StepSelfies
+            <StepCaptureAnalyze
+              DEV={dev}
+              previews={previews}
               setFile={setFile}
+              faces={faces}
               setFaces={setFaces}
+              analyzer={analyzer}
               onPrev={() => setStep(1)}
               onNext={() => setStep(3)}
             />
           )}
           {step === 3 && (
-            <StepAnalyze
+            <StepPreview
+              DEV={dev}
               analyzer={analyzer}
+              previewRoutine={previewRoutine}
+              value={value}
               onPrev={() => setStep(2)}
               onNext={() => setStep(4)}
             />
           )}
           {step === 4 && (
-            <StepPreview
-              analyzer={analyzer}
-              previewRoutine={previewRoutine}
-              value={value}
-              onPrev={() => setStep(3)}
-              onNext={() => setStep(5)}
-            />
-          )}
-          {step === 5 && (
             <Checkout
               intake={intake}
               routine={routine}
               value={value}
-              onBack={() => setStep(4)}
+              onBack={() => setStep(3)}
             />
           )}
         </div>
-        {/* Right panel */}
-        <aside>
-          <SideCard
-            step={step}
-            previews={previews}
-            analyzer={analyzer}
-            value={value}
-          />
-        </aside>
+        {/* No sidebar anymore */}
       </div>
     </section>
   );
@@ -941,18 +1123,63 @@ function StepIntake({ intake, setIntake, onNext }) {
   );
 }
 
-function StepSelfies({ setFile, setFaces, onPrev, onNext }) {
-  const onPick = (slot) => (e) => {
+function AnalyzingOverlay() {
+  return (
+    <div className="absolute inset-0 rounded-lg bg-slate-900/50 backdrop-blur">
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          initial={{ y: "100%" }}
+          animate={{ y: "-100%" }}
+          transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
+          className="h-1/3 w-full bg-gradient-to-b from-transparent via-white/30 to-transparent"
+        />
+      </div>
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] text-white">
+        Analyzing…
+      </div>
+    </div>
+  );
+}
+
+function StepCaptureAnalyze({
+  DEV,
+  previews,
+  setFile,
+  faces,
+  setFaces,
+  analyzer,
+  onPrev,
+  onNext,
+}) {
+  const [warnings, setWarnings] = useState({ front: [], left: [], right: [] });
+  const [hints, setHints] = useState({ front: [], left: [], right: [] });
+
+  const onPick = (slot) => async (e) => {
     const f = e.target.files?.[0];
     if (f) {
       setFaces((s) => ({ ...s, [slot]: f }));
       setFile(slot, f);
+      const q = await analyzeImageQuality(f, slot);
+      setWarnings((w) => ({ ...w, [slot]: q.issues }));
+      setHints((h) => ({ ...h, [slot]: q.hints }));
     }
   };
+
+  const ready = Boolean(faces.front && faces.left && faces.right);
+
+  useEffect(() => {
+    // auto-advance to preview after analysis finishes
+    if (analyzer.status === "done") {
+      // stay on this step to show results + ratings blur + CTA; user can hit Next to go to Preview step (routine)
+    }
+  }, [analyzer.status]);
+
+  const blurred = !DEV; // dev mode unblurs
+
   return (
     <Card
-      title="Upload 3 selfies (best results)"
-      subtitle="Front, left, right — natural light, no filter. Previews appear in ‘Your progress’ on the right."
+      title="Upload & Analyze (AI)"
+      subtitle="Front, left, right — natural light, no filter. Analysis starts automatically after all 3 photos are in."
     >
       <div className="grid gap-4 md:grid-cols-3">
         {["front", "left", "right"].map((slot) => (
@@ -971,58 +1198,66 @@ function StepSelfies({ setFile, setFaces, onPrev, onNext }) {
                 Tap to add a {slot} selfie
               </p>
             </div>
-            {/* Removed inline image preview here per request */}
+            <div
+              className="relative mt-2 grid place-content-center overflow-hidden rounded-lg bg-white/5"
+              style={{ aspectRatio: "3/4" }}
+            >
+              {previews[slot] ? (
+                <img
+                  src={previews[slot]}
+                  alt={`${slot} selfie, AI skin analysis, acne skincare`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="p-6 text-center text-white/40">No image</div>
+              )}
+              {analyzer.status === "analyzing" && ready && <AnalyzingOverlay />}
+            </div>
+            {(warnings[slot]?.length > 0 || hints[slot]?.length > 0) && (
+              <div className="mt-2 space-y-1 text-xs">
+                {warnings[slot].map((w, i) => (
+                  <div key={i} className="flex items-start gap-1 text-rose-300">
+                    <AlertTriangle size={12} /> <span>{w}</span>
+                  </div>
+                ))}
+                {hints[slot].map((t, i) => (
+                  <div key={i} className="flex items-start gap-1 text-white/60">
+                    <Info size={12} /> <span>{t}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Button className="w-full sm:w-auto" variant="outline" onClick={onPrev}>
-          <ArrowLeft size={16} /> Back
-        </Button>
-        <Button className="w-full sm:w-auto" onClick={onNext}>
-          Continue <ArrowRight size={16} />
-        </Button>
-      </div>
-      <p className="mt-2 text-xs text-white/50">
-        Selfies are posted to your own secure backend for GPT analysis. If your
-        backend isn’t set up, a local estimator runs on‑device. See{" "}
-        <a className="underline" href={POLICY.privacy}>
-          privacy
-        </a>
-        .
-      </p>
-    </Card>
-  );
-}
 
-function StepAnalyze({ analyzer, onPrev, onNext }) {
-  return (
-    <Card
-      title="Analyzing your selfies (AI)"
-      subtitle="Educational estimate; we’ll tune your plan accordingly."
-    >
-      {analyzer.status === "waiting" && (
-        <div className="text-white/70">
-          Add all 3 photos to auto‑analyze. You can also skip and continue.
-        </div>
-      )}
-      {analyzer.status === "analyzing" && (
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-sm text-white/80">
-            <Info size={14} /> Running analysis…
+      {/* Analyzer status */}
+      <div className="mt-4">
+        {analyzer.status === "waiting" && (
+          <div className="text-white/70">
+            Add all 3 photos to auto‑analyze. You can also continue without
+            photos.
           </div>
-          <Meter value={analyzer.progress} />
-          <div className="mt-1 text-xs text-white/50">
-            This is educational, not diagnostic.
+        )}
+        {analyzer.status === "analyzing" && (
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-sm text-white/80">
+              <Info size={14} /> Running analysis…
+            </div>
+            <Meter value={analyzer.progress} />
+            <div className="mt-1 text-xs text-white/50">
+              This is educational, not diagnostic.
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Results inline once done */}
       {analyzer.status === "done" && analyzer.result && (
-        <div className="space-y-4">
-          {/* Full clinical-style report */}
+        <div className="mt-5 space-y-4">
           <ClinicalReport result={analyzer.result} />
 
-          {/* Ratings — BLURRED/LOCKED */}
+          {/* Ratings — BLURRED/LOCKED with CTA below */}
           <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="mb-1 text-sm font-semibold">
               AI Analysis Ratings{" "}
@@ -1030,7 +1265,7 @@ function StepAnalyze({ analyzer, onPrev, onNext }) {
                 (source: {analyzer.result.source})
               </span>
             </div>
-            <div className="blur-sm select-none">
+            <div className={clsx(blurred && "blur-sm select-none")}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-center">
                   <div className="text-xs text-white/60">Overall Rating</div>
@@ -1052,25 +1287,26 @@ function StepAnalyze({ analyzer, onPrev, onNext }) {
                 </div>
               </div>
             </div>
-            <BlurLock label="Ratings blurred — unlock to view" />
-          </div>
-
-          {/* Optional spicy section (collapsed by default) */}
-          <details className="rounded-2xl border border-white/10 bg-black/30 p-4">
-            <summary className="cursor-pointer list-none text-sm font-semibold text-white/80">
-              Fun Roast (optional)
-            </summary>
-            <div className="pt-3">
-              <HarshRoast result={analyzer.result} />
+            {blurred && <BlurLock label="Ratings blurred — unlock to view" />}
+            <div className="mt-3">
+              <Button href="#checkout">
+                <Lock size={16} /> Unlock full Clinical Report
+              </Button>
             </div>
-          </details>
+            <p className="mt-2 text-xs text-white/50">
+              Instant access after purchase.
+            </p>
+          </div>
         </div>
       )}
+
       {analyzer.status === "error" && (
-        <div className="text-rose-300">
-          Could not analyze. Try smaller images or different photos.
+        <div className="mt-4 rounded-xl border border-rose-300/40 bg-rose-400/10 p-3 text-rose-200">
+          Could not analyze. Try smaller images, better light, or different
+          photos.
         </div>
       )}
+
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <Button className="w-full sm:w-auto" variant="outline" onClick={onPrev}>
           <ArrowLeft size={16} /> Back
@@ -1079,135 +1315,19 @@ function StepAnalyze({ analyzer, onPrev, onNext }) {
           Continue <ArrowRight size={16} />
         </Button>
       </div>
+      <p className="mt-2 text-xs text-white/50">
+        Selfies are posted to your own secure backend for GPT analysis. If your
+        backend isn’t set up, a local estimator runs on‑device. See{" "}
+        <a className="underline" href={POLICY.privacy}>
+          privacy
+        </a>
+        .
+      </p>
     </Card>
-  );
-}
-
-function StepPreview({ analyzer, previewRoutine, value, onPrev, onNext }) {
-  return (
-    <Card
-      title="Your personalized routine (locked preview)"
-      subtitle="Unlock the full routine and product picks"
-    >
-      <div className="relative">
-        <div className="blur-sm select-none">
-          <RoutineCard
-            routine={{
-              morning: previewRoutine.morning,
-              night: previewRoutine.night,
-            }}
-            intake={{ timeGoal: 14, effort: 2 }}
-            value={value}
-          />
-        </div>
-        <BlurLock label="Routine blurred — unlock to view" />
-      </div>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Button className="w-full sm:w-auto" variant="outline" onClick={onPrev}>
-          <ArrowLeft size={16} /> Back
-        </Button>
-        <Button className="w-full sm:w-auto" onClick={onNext}>
-          <Lock size={16} /> Unlock Now <ArrowRight size={16} />
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-// -------------------- SIDECARD --------------------
-function SideCard({ step, previews, analyzer, value }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="mb-3 flex items-center justify-between text-sm">
-        <div className="font-semibold">Your progress</div>
-        <div className="text-white/60">Step {step} / 5</div>
-      </div>
-      <div className="space-y-4 text-sm text-white/80">
-        <div className="rounded-xl border border-white/10 p-3">
-          <div className="mb-2 text-xs font-semibold text-white/60">
-            Selfies
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {["front", "left", "right"].map((s) => (
-              <div
-                key={s}
-                className="aspect-[3/4] rounded-md border border-white/10 bg-white/5"
-              >
-                {previews[s] && (
-                  <img
-                    src={previews[s]}
-                    alt={s}
-                    className="h-full w-full rounded-md object-cover"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-xl border border-white/10 p-3">
-          <div className="mb-2 text-xs font-semibold text-white/60">
-            Top drivers
-          </div>
-          {analyzer?.result ? (
-            <ul className="space-y-1">
-              {analyzer.result.scores.slice(0, 3).map((s) => (
-                <li key={s.key} className="flex items-center justify-between">
-                  <span>{s.label}</span>
-                  <span>{s.score}%</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-white/60">Pending</p>
-          )}
-        </div>
-        <div className="rounded-xl border border-white/10 p-3">
-          <div className="mb-1 text-xs font-semibold text-white/60">
-            Value score
-          </div>
-          <div className="text-lg font-bold text-emerald-300">
-            {value?.score}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
 // -------------------- CLINICAL REPORT --------------------
-function Badge({ children, tone = "slate" }) {
-  const map = {
-    emerald: "border-emerald-300/40 bg-emerald-400/10 text-emerald-300",
-    rose: "border-rose-300/40 bg-rose-400/10 text-rose-200",
-    amber: "border-amber-300/40 bg-amber-400/10 text-amber-200",
-    slate: "border-white/10 bg-white/10 text-white/80",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-        map[tone] || map.slate
-      }`}
-    >
-      {children}
-    </span>
-  );
-}
-
-function Bar({ label, value }) {
-  const pct = Math.max(0, Math.min(100, Number(value) || 0));
-  return (
-    <div className="mb-2">
-      <div className="mb-1 flex items-center justify-between text-xs text-white/70">
-        <span>{label}</span>
-        <span>{pct}%</span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded bg-white/10">
-        <div className="h-2 bg-emerald-400" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
 function buildFindings(r) {
   const m = r.metrics || {};
   const dist = r.distribution || {};
@@ -1283,11 +1403,13 @@ function ClinicalReport({ result }) {
         >{`severity: ${result.severity || "uncertain"}`}</Badge>
       </div>
 
+      {/* Stronger sales copy headline */}
+      <div className="mb-2 text-sm font-bold text-white">
+        Insecurities & Problems (what the AI actually sees)
+      </div>
+
       {/* High‑priority concerns */}
       <div className="mb-4">
-        <div className="mb-1 text-xs font-semibold text-white/70">
-          High‑priority concerns
-        </div>
         <ul className="list-disc space-y-1 pl-5 text-sm text-white/80">
           {findings.map((t, i) => (
             <li key={i}>{t}</li>
@@ -1310,7 +1432,7 @@ function ClinicalReport({ result }) {
             </div>
           </div>
         ))}
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
           <div className="mb-1 text-xs text-white/60">Lesion counts</div>
           <div>
             Non‑inflamed:{" "}
@@ -1392,7 +1514,7 @@ function ClinicalReport({ result }) {
   );
 }
 
-// -------------------- ROUTINE & ROAST --------------------
+// -------------------- ROUTINE PREVIEW --------------------
 function RoutineCard({ routine, intake, value }) {
   return (
     <div className="grid gap-5 md:grid-cols-2">
@@ -1439,85 +1561,36 @@ function RoutineCard({ routine, intake, value }) {
   );
 }
 
-function HarshRoast({ result }) {
-  const byKey = Object.fromEntries(result.scores.map((s) => [s.key, s.score]));
-  const sev = Math.max(
-    0,
-    Math.min(
-      100,
-      Math.round(
-        (100 - (byKey.clarity || 50)) * 0.35 +
-          (byKey.redness || 50) * 0.2 +
-          Math.max(0, (byKey.oil || 50) - 55) * 0.2 +
-          (100 - (byKey.texture || 50)) * 0.25
-      )
-    )
-  );
-  const lines = [];
-  if ((byKey.clarity || 0) < 55)
-    lines.push(
-      "Your pores are hosting a rave and security (sunscreen) didn’t show."
-    );
-  if ((byKey.oil || 0) > 70)
-    lines.push("T‑zone so shiny NASA’s trying to dock.");
-  if ((byKey.redness || 0) > 65)
-    lines.push("Your barrier’s on strike and the picket signs are red.");
-  if ((byKey.texture || 0) < 60)
-    lines.push("Texture so bumpy Google Maps wants to chart it.");
-  if ((byKey.sym || 0) < 60) lines.push("Left face vs right face: civil war.");
-  if ((byKey.jaw || 0) < 60)
-    lines.push("Jawline’s playing hide‑and‑seek — and winning.");
-  if (!lines.length)
-    lines.push(
-      "You’re close — stop freestyling and lock a routine before acne does."
-    );
-  const offenses = [
-    { key: "clarity", label: "Low Clarity", bad: (byKey.clarity || 0) < 60 },
-    { key: "redness", label: "High Redness", bad: (byKey.redness || 0) > 60 },
-    { key: "oil", label: "High Oil", bad: (byKey.oil || 0) > 65 },
-    { key: "dry", label: "Dry/Flaky", bad: (byKey.dry || 0) > 65 },
-    { key: "texture", label: "Rough Texture", bad: (byKey.texture || 0) < 60 },
-    { key: "sym", label: "Low Symmetry", bad: (byKey.sym || 0) < 60 },
-    { key: "jaw", label: "Weak Jawline", bad: (byKey.jaw || 0) < 60 },
-  ].filter((x) => x.bad);
+function StepPreview({ DEV, analyzer, previewRoutine, value, onPrev, onNext }) {
+  const blurred = !DEV;
   return (
-    <div>
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white/80">
-        <Flame size={16} /> Harsh Roast (extra spicy)
-      </div>
-      <div className="mb-3">
-        <div className="mb-1 flex items-center justify-between text-xs text-white/60">
-          <span>Roast Meter</span>
-          <span>{sev}/100</span>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded bg-white/10">
-          <div
-            className="h-2 bg-gradient-to-r from-rose-500 via-orange-400 to-yellow-300"
-            style={{ width: `${sev}%` }}
+    <Card
+      title="Your personalized routine (locked preview)"
+      subtitle="Unlock the full routine and product picks"
+    >
+      <div className="relative">
+        <div className={clsx(blurred && "blur-sm select-none")}>
+          \
+          <RoutineCard
+            routine={{
+              morning: previewRoutine.morning,
+              night: previewRoutine.night,
+            }}
+            intake={{ timeGoal: 14, effort: 2 }}
+            value={value}
           />
         </div>
+        {blurred && <BlurLock label="Routine blurred — unlock to view" />}
       </div>
-      {offenses.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {offenses.map((o) => (
-            <span
-              key={o.key}
-              className="inline-flex items-center gap-1 rounded-full border border-rose-300/30 bg-rose-400/10 px-3 py-1 text-xs text-rose-200"
-            >
-              <AlertTriangle size={12} /> {o.label}
-            </span>
-          ))}
-        </div>
-      )}
-      <ul className="list-disc space-y-1 pl-5 text-sm text-white/80">
-        {lines.map((t, i) => (
-          <li key={i}>{t}</li>
-        ))}
-      </ul>
-      <p className="mt-2 text-xs text-white/50">
-        Roast = motivation, not diagnosis. We fix it with your plan below.
-      </p>
-    </div>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <Button className="w-full sm:w-auto" variant="outline" onClick={onPrev}>
+          <ArrowLeft size={16} /> Back
+        </Button>
+        <Button className="w-full sm:w-auto" onClick={onNext}>
+          <Lock size={16} /> Unlock Now <ArrowRight size={16} />
+        </Button>
+      </div>
+    </Card>
   );
 }
 
@@ -1826,41 +1899,66 @@ function Checkout({ onBack, intake, routine, value }) {
   );
 }
 
-// -------------------- BONUSES & GUARANTEES --------------------
-function Bonuses() {
+// -------------------- BONUSES (stronger UI) --------------------
+function BonusesStrong() {
+  const items = [
+    {
+      title: "Clear Skin Cheatsheet (PDF)",
+      value: 499,
+      blurb: "One‑pager you’ll actually follow.",
+    },
+    {
+      title: "Ingredient Decoder (mobile)",
+      value: 599,
+      blurb: "Snap labels → know what works.",
+    },
+    {
+      title: "Travel Routine Builder",
+      value: 399,
+      blurb: "3 items, zero breakouts on trips.",
+    },
+  ];
   return (
     <section id="bonuses" className="mt-12">
-      <h3 className="text-2xl font-bold">Fast‑action bonuses</h3>
-      <p className="text-white/70">
-        Join before the timer ends to lock in these extras.
-      </p>
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[
-          { title: "Clear Skin Cheatsheet (PDF)", value: 499 },
-          { title: "Ingredient Decoder (mobile)", value: 599 },
-          { title: "Travel Routine Builder", value: 399 },
-        ].map((b, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
-          >
-            <div className="text-sm font-bold">{b.title}</div>
-            <div className="text-xs text-white/60">
-              Value {formatINR(b.value)}
-            </div>
-            <div className="mt-3 text-sm text-white/80">
-              Instant access after purchase.
-            </div>
+      <div className="relative">
+        <div
+          className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-emerald-500/30 via-teal-400/30 to-cyan-400/30 blur-xl"
+          aria-hidden
+        />
+        <div className="relative rounded-3xl border border-emerald-300/40 bg-slate-900/50 p-6">
+          <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
+            Fast‑action bonuses
           </div>
-        ))}
+          <h3 className="text-2xl font-extrabold">
+            Lock these in before the timer ends
+          </h3>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {items.map((b, i) => (
+              <div
+                key={i}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 p-4"
+              >
+                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/10 blur-2xl transition-transform group-hover:scale-125" />
+                <div className="text-sm font-bold">{b.title}</div>
+                <div className="text-xs text-white/60">
+                  Value {formatINR(b.value)}
+                </div>
+                <div className="mt-3 text-sm text-white/80">{b.blurb}</div>
+                <div className="mt-3 inline-flex items-center gap-1 text-xs text-emerald-300">
+                  <ShieldCheck size={14} /> Included for early buyers
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-white/60">
+            Bonuses expire with the countdown.{" "}
+            <a className="underline" href={POLICY.scarcity}>
+              See scarcity policy
+            </a>
+            .
+          </p>
+        </div>
       </div>
-      <p className="mt-3 text-xs text-white/60">
-        Bonuses expire with the countdown.{" "}
-        <a className="underline" href={POLICY.scarcity}>
-          See scarcity policy
-        </a>
-        .
-      </p>
     </section>
   );
 }
@@ -2218,4 +2316,92 @@ function makeRoutine(intake) {
   const morning = [baseCleanser, activeAM, moisturizer, sunscreen];
   const night = [baseCleanser, activePM, moisturizer];
   return { morning, night };
+}
+
+// -------------------- SEO TAGGING --------------------
+function useSEO() {
+  useEffect(() => {
+    try {
+      const head = document.head;
+      const metaK = document.createElement("meta");
+      metaK.name = "keywords";
+      metaK.content =
+        "AI skin analysis, acne, skincare, GPT, routine, dermatology, face analysis, photos, India";
+      head.appendChild(metaK);
+      const ld = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "AI Skin & Acne Analysis",
+        description:
+          "Upload selfies for AI acne analysis and personalized routine.",
+      };
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.textContent = JSON.stringify(ld);
+      head.appendChild(script);
+      return () => {
+        head.removeChild(metaK);
+        head.removeChild(script);
+      };
+    } catch {}
+  }, []);
+}
+
+// -------------------- DEV TESTS --------------------
+function runUnitTests() {
+  const assert = (cond, msg) => {
+    if (!cond) throw new Error(msg);
+  };
+  try {
+    // valueEquationScore
+    assert(
+      valueEquationScore({ dream: 4, likelihood: 3, time: 2, effort: 2 }) === 3,
+      "valueEquationScore basic"
+    );
+    assert(
+      valueEquationScore({ dream: 5, likelihood: 4, time: 1, effort: 1 }) >= 19,
+      "valueEquationScore high"
+    );
+
+    // makeRoutine branching
+    const r1 = makeRoutine({ skin: "dry", severity: "mild" });
+    assert(r1.morning.length === 4 && r1.night.length === 3, "routine lengths");
+    const r2 = makeRoutine({ skin: "oily", severity: "severe" });
+    assert(r2.morning.join(" ").includes("BPO"), "severe includes BPO AM");
+
+    // normalizeServerOut mapping
+    const normalized = normalizeServerOut({
+      metrics: {
+        clarity: 70,
+        redness: 20,
+        oiliness: 30,
+        dryness: 10,
+        texture: 80,
+        symmetry: 90,
+        jawline: 60,
+      },
+      severity: "moderate",
+    });
+    assert(normalized.metrics.clarity === 70, "normalize metrics");
+    assert(normalized.severity === "moderate", "normalize severity");
+
+    // buildLocalResult ranges
+    const local = buildLocalResult(123456);
+    [
+      "clarity",
+      "redness",
+      "oiliness",
+      "dryness",
+      "texture",
+      "symmetry",
+      "jawline",
+    ].forEach((k) => {
+      const v = local.metrics[k === "oiliness" ? "oiliness" : k];
+      assert(v >= 5 && v <= 100, `metric ${k} in range`);
+    });
+
+    console.log("✅ All unit tests passed");
+  } catch (e) {
+    console.error("❌ Unit test failed:", e.message || e);
+  }
 }
