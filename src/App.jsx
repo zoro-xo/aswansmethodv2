@@ -1,25 +1,3 @@
-// Canvas bootstrap: mock /seats.json so app runs standalone
-if (typeof window !== "undefined") {
-  const __SEATS__ = { claimed: 118 };
-  const __origFetch = window.fetch?.bind(window) || fetch;
-  window.fetch = (input, init) => {
-    if (typeof input === "string" && input === "/seats.json") {
-      return Promise.resolve(
-        new Response(JSON.stringify(__SEATS__), {
-          headers: { "Content-Type": "application/json" },
-        })
-      );
-    }
-    return __origFetch(input, init);
-  };
-}
-
-// =====================================================
-// Acne Reset — v5.8.2 (UI Consolidation)
-// - Merged sections within the ClinicalReport for a unified view.
-// - Removed the "Your Full Analysis" sub-header.
-// =====================================================
-
 import React, {
   useEffect,
   useMemo,
@@ -51,7 +29,24 @@ import {
   Sun,
   RefreshCw,
   KeyRound,
+  EyeOff,
 } from "lucide-react";
+
+// Canvas bootstrap: mock /seats.json so app runs standalone
+if (typeof window !== "undefined") {
+  const __SEATS__ = { claimed: 118 };
+  const __origFetch = window.fetch?.bind(window) || fetch;
+  window.fetch = (input, init) => {
+    if (typeof input === "string" && input === "/seats.json") {
+      return Promise.resolve(
+        new Response(JSON.stringify(__SEATS__), {
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+    return __origFetch(input, init);
+  };
+}
 
 // -------------------- CONFIG --------------------
 const CHECKOUT_URL = "https://aswan.in/checkout"; // replace with real checkout
@@ -136,6 +131,55 @@ function useDevMode() {
   }, []);
   return dev;
 }
+
+// -------------------- PRIMITIVES --------------------
+const Button = ({
+  variant = "primary",
+  href,
+  onClick,
+  children,
+  className,
+  type,
+  target,
+  rel,
+  disabled,
+}) => {
+  const base =
+    "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
+  const styles =
+    variant === "primary"
+      ? "bg-emerald-500 text-slate-950 shadow hover:bg-emerald-400"
+      : variant === "outline"
+      ? "border border-white/10 bg-white/10 hover:bg-white/15"
+      : variant === "ghost"
+      ? "border border-white/10 bg-white/5 hover:bg-white/10"
+      : "bg-white/0 hover:bg-white/10";
+  const Comp = href ? "a" : "button";
+
+  return (
+    <Comp
+      href={href}
+      onClick={onClick}
+      className={clsx(base, styles, className)}
+      target={target}
+      rel={rel}
+      disabled={disabled}
+      type={type}
+    >
+      {children}
+    </Comp>
+  );
+};
+
+const Card = ({ title, subtitle, children, className = "" }) => (
+  <div
+    className={`rounded-2xl border border-white/10 bg-white/5 p-5 shadow ${className}`}
+  >
+    {title && <h3 className="text-xl font-semibold">{title}</h3>}
+    {subtitle && <p className="mt-1 text-sm text-white/70">{subtitle}</p>}
+    <div className={clsx(title || subtitle) && "mt-4"}>{children}</div>
+  </div>
+);
 
 // Value Equation score
 function valueEquationScore(v) {
@@ -287,6 +331,7 @@ function normalizeServerOut(x) {
     },
     disclaimer: x?.disclaimer || "Educational estimate. Not medical advice.",
     source: x?.source || "gpt",
+    summaryPoints: x?.summaryPoints || [],
   };
 }
 
@@ -369,15 +414,15 @@ function buildLocalResult(seed) {
   const possibleTriggers = [
     oil > 65 ? "Occlusive hair products / helmets" : "Irregular cleansing",
     redness > 60
-      ? "Over‑exfoliation / fragrance irritation"
+      ? "Over-exfoliation / fragrance irritation"
       : "Sweat + friction",
   ];
   const nonMedicalActions = [
-    "SPF 50 daily (2‑finger)",
+    "SPF 50 daily (2-finger)",
     "Gentle foaming cleanse (2×/day)",
     "BPO 2.5% wash AM 3–4×/wk",
-    "Adapalene 0.1% pea‑size PM ramp",
-    "Fragrance‑free moisturizer",
+    "Adapalene 0.1% pea-size PM ramp",
+    "Fragrance-free moisturizer",
   ];
   const routineOutline = {
     AM: [
@@ -386,7 +431,7 @@ function buildLocalResult(seed) {
       "Gel/Ceramide moisturizer",
       "SPF 50",
     ],
-    PM: ["Cleanse", "Adapalene pea‑size", "Moisturizer"],
+    PM: ["Cleanse", "Adapalene pea-size", "Moisturizer"],
   };
   const metrics = {
     clarity: map100(clarity),
@@ -467,15 +512,156 @@ function useFaceAnalyzer(faces, userApiKey) {
       const seed = (h1 ^ h2 ^ h3) >>> 0;
 
       let apiResult;
+
+      const generateConcernSummary = (m) => {
+        const concerns = [
+          {
+            metric: "oiliness",
+            score: m.oiliness,
+            threshold: 70,
+            direction: "up",
+            text: "High oiliness risks clogged pores and more breakouts.",
+          },
+          {
+            metric: "redness",
+            score: m.redness,
+            threshold: 65,
+            direction: "up",
+            text: "Significant redness indicates a damaged, vulnerable skin barrier.",
+          },
+          {
+            metric: "clarity",
+            score: m.clarity,
+            threshold: 60,
+            direction: "down",
+            text: "Low skin clarity signals risk of future marks.",
+          },
+          {
+            metric: "texture",
+            score: m.texture,
+            threshold: 60,
+            direction: "down",
+            text: "Uneven texture could worsen without proper exfoliation.",
+          },
+          {
+            metric: "dryness",
+            score: m.dryness,
+            threshold: 65,
+            direction: "up",
+            text: "Severe dryness can trigger even more oil production.",
+          },
+          {
+            metric: "symmetry",
+            score: m.symmetry,
+            threshold: 60,
+            direction: "down",
+            text: "Asymmetry may point to lifestyle factors needing correction.",
+          },
+          {
+            metric: "jawline",
+            score: m.jawline,
+            threshold: 60,
+            direction: "down",
+            text: "Jawline inflammation often linked to hormonal triggers.",
+          },
+          {
+            metric: "risk",
+            score: Math.max(
+              5,
+              Math.min(
+                100,
+                Math.round(
+                  0.6 * (100 - m.clarity) + 0.2 * m.redness + 0.2 * m.oiliness
+                )
+              )
+            ),
+            threshold: 70,
+            direction: "up",
+            text: "High composite risk score indicates future breakout likelihood.",
+          },
+        ];
+
+        const triggeredConcerns = concerns.filter((c) => {
+          if (c.direction === "up") return c.score > c.threshold;
+          return c.score < c.threshold;
+        });
+
+        triggeredConcerns.sort((a, b) => {
+          const severityA =
+            a.direction === "up"
+              ? a.score - a.threshold
+              : a.threshold - a.score;
+          const severityB =
+            b.direction === "up"
+              ? b.score - b.threshold
+              : b.threshold - b.score;
+          return severityB - severityA;
+        });
+
+        let bulletPoints = triggeredConcerns.map((c) => c.text);
+
+        if (bulletPoints.length < 4) {
+          const allSorted = [...concerns].sort((a, b) => {
+            const severityA =
+              a.direction === "up"
+                ? a.score - a.threshold
+                : a.threshold - a.score;
+            const severityB =
+              b.direction === "up"
+                ? b.score - b.threshold
+                : b.threshold - b.score;
+            return severityB - severityA;
+          });
+          const additionalPoints = allSorted
+            .map((c) => c.text)
+            .filter((text) => !bulletPoints.includes(text));
+          const needed = 4 - bulletPoints.length;
+          bulletPoints.push(...additionalPoints.slice(0, needed));
+        }
+
+        if (!bulletPoints.length) {
+          bulletPoints.push(
+            "Skin is stable, but consistency is key to prevent issues."
+          );
+        }
+
+        return bulletPoints.slice(0, 5);
+      };
+
       if (keyIsValid) {
-        console.log(
-          "Simulating GPT-5 Turbo API call with valid key:",
-          userApiKey
-        );
+        console.groupCollapsed("Simulating GPT-5 Turbo API Call");
+
+        const metrics = buildMockAPIResult(seed).metrics;
+        const prompt = `Summarize the following skin metrics into 3–5 short bullet points. Focus only on the most concerning or negative aspects. Keep each point concise (under 12 words) and emphasize risks or problems. Metrics: ${JSON.stringify(
+          metrics,
+          null,
+          2
+        )}`;
+        console.log("USER PROMPT TO CHATGPT:\n", prompt);
+
+        console.log("GPT-5 TURBO: Thinking...");
+        await new Promise((res) => setTimeout(res, 1500));
+
         apiResult = buildMockAPIResult(seed);
+        apiResult.summaryPoints = generateConcernSummary(apiResult.metrics);
+
+        console.log(
+          "CHATGPT RESPONSE (bullet points):\n- ",
+          apiResult.summaryPoints.join("\n- ")
+        );
+        console.log("---");
+        console.log(
+          "ANALYSIS of Overall Rating: The overall rating is a weighted average of key metrics like clarity, redness, and oiliness. A low score indicates significant active issues requiring immediate attention."
+        );
+        console.log(
+          "ANALYSIS of Potential Rating: This estimates the possible score after 8 weeks of consistent routine adherence. It represents the achievable improvement from the current baseline."
+        );
+
+        console.groupEnd();
       } else {
         console.log("API key invalid or missing, running local analysis.");
         apiResult = buildLocalResult(seed);
+        apiResult.summaryPoints = generateConcernSummary(apiResult.metrics);
       }
 
       setResult(normalizeServerOut(apiResult));
@@ -579,147 +765,6 @@ async function analyzeImageQuality(file, slot) {
   return { issues, hints };
 }
 
-// -------------------- PRIMITIVES --------------------
-const Button = ({
-  variant = "primary",
-  href,
-  onClick,
-  children,
-  className,
-  type,
-  target,
-  rel,
-  disabled,
-}) => {
-  const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
-  const styles =
-    variant === "primary"
-      ? "bg-emerald-500 text-slate-950 shadow hover:bg-emerald-400"
-      : variant === "outline"
-      ? "border border-white/10 bg-white/10 hover:bg-white/15"
-      : "bg-white/0 hover:bg-white/10";
-  const cls = clsx(base, styles, className);
-  if (href)
-    return (
-      <a className={cls} href={href} target={target} rel={rel}>
-        {children}
-      </a>
-    );
-  return (
-    <button className={cls} onClick={onClick} type={type} disabled={disabled}>
-      {children}
-    </button>
-  );
-};
-
-function Card({ title, subtitle, children }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow">
-      {title && <h3 className="text-xl font-semibold">{title}</h3>}
-      {subtitle && <p className="mt-1 text-sm text-white/70">{subtitle}</p>}
-      <div className="mt-4">{children}</div>
-    </div>
-  );
-}
-
-function Badge({ children, tone = "slate" }) {
-  const map = {
-    emerald: "border-emerald-300/40 bg-emerald-400/10 text-emerald-300",
-    rose: "border-rose-300/40 bg-rose-400/10 text-rose-200",
-    amber: "border-amber-300/40 bg-amber-400/10 text-amber-200",
-    slate: "border-white/10 bg-white/10 text-white/80",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-        map[tone] || map.slate
-      }`}
-    >
-      {children}
-    </span>
-  );
-}
-
-function Bar({ label, value }) {
-  const pct = Math.max(0, Math.min(100, Number(value) || 0));
-  return (
-    <div className="mb-2">
-      <div className="mb-1 flex items-center justify-between text-xs text-white/70">
-        <span>{label}</span>
-        <span>{pct}%</span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded bg-white/10">
-        <div className="h-2 bg-emerald-400" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-// -------------------- APP --------------------
-export default function App() {
-  useSEO();
-  const DEV = useDevMode();
-  const [analysisState, setAnalysisState] = useState({
-    status: "waiting",
-    progress: 0,
-  });
-  const [userApiKey] = useState("");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const u = new URL(window.location.href);
-      const flag = (u.searchParams.get("tests") || "").toLowerCase();
-      if (["1", "true", "yes", "on"].includes(flag)) {
-        runUnitTests();
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (analysisState.status === "analyzing") {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-    }
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [analysisState.status]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <Header dev={DEV} />
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-16 sm:pb-24">
-        <Hero />
-        <OfferWizard
-          dev={DEV}
-          onAnalysisChange={setAnalysisState}
-          userApiKey="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"
-        />
-        <OfferStack />
-        <BonusesStrong />
-        <Guarantees />
-        <Testimonials />
-        <WhoNotFor />
-        <Quickstart />
-        <Policies />
-        <FAQ />
-        <Footer />
-      </main>
-      <StickyCTA />
-      <WhatsAppNudge />
-      <AnimatePresence>
-        {analysisState.status === "analyzing" && (
-          <FullScreenAnalyzer progress={analysisState.progress} />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 // -------------------- HEADER --------------------
 function Header({ dev }) {
   return (
@@ -779,6 +824,69 @@ function Header({ dev }) {
 // -------------------- HERO --------------------
 function Hero() {
   const { h, m, s, isOver } = useCountdown(SCARCITY.deadlineISO);
+  const ANCHOR_PRICE = 2999;
+
+  const Chip = ({ children }) => (
+    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+      {children}
+    </span>
+  );
+
+  const ListItem = ({ children }) => (
+    <li className="flex items-start gap-2 text-sm text-white/80">
+      <CheckCircle2 size={16} className="mt-0.5 text-emerald-300" /> {children}
+    </li>
+  );
+
+  function OfferCard() {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div className="flex items-baseline gap-2">
+          <div className="text-3xl font-black text-white">
+            {formatINR(INTRO_PRICE)}
+          </div>
+          <div className="text-white/40 line-through">
+            {formatINR(ANCHOR_PRICE)}
+          </div>
+        </div>
+        <div className="mt-1 text-xs text-white/60">
+          One-time unlock • lifetime access
+        </div>
+
+        <ul className="mt-4 grid gap-2">
+          <ListItem>Custom 30-day acne routine (AM/PM)</ListItem>
+          <ListItem>Personalized PDF report with scores & priorities</ListItem>
+          <ListItem>Looksmax guide (41 pages) — bonus included</ListItem>
+          <ListItem>Product shortlist (budget → premium)</ListItem>
+          <ListItem>Progress tracker & reminders</ListItem>
+        </ul>
+
+        <div className="mt-4 rounded-xl border border-emerald-300/30 bg-emerald-400/10 p-3 text-xs text-emerald-200">
+          <div className="font-semibold flex items-center gap-2">
+            <ShieldCheck size={14} /> 30-day love-it guarantee
+          </div>
+          <p className="mt-1 text-emerald-200/80">
+            If you don’t love it, we’ll refund you. Educational guidance — not
+            medical advice.
+          </p>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <Button href="#checkout">
+            <ShoppingCart size={16} /> Unlock my plan now
+          </Button>
+          <Button variant="outline" href="#wizard">
+            <Wand2 size={16} /> See how it works
+          </Button>
+        </div>
+
+        <div className="mt-4 text-[11px] text-white/60">
+          Instant access after purchase • Secure checkout
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className="mb-10 grid grid-cols-1 items-center gap-8 sm:grid-cols-2">
       <div>
@@ -790,34 +898,39 @@ function Hero() {
             <Flame size={14} /> Ends today
           </span>
         </div>
+
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-          AI‑assisted 2‑Minute Looks Routine — first visible win in 7 days
+          Clearer skin in 7 days — or your money back
           <span className="block text-emerald-400">Powered by {MECHANISM}</span>
         </h1>
+
         <p className="mt-3 text-white/80">
-          Upload 3 selfies for a full AI analysis. Our engine builds a
-          personalized routine to target your specific skin concerns, aiming for
-          visible results in just one week.
+          Upload 3 selfies. Our engine builds a 2-minute routine that targets
+          oil, redness, and congestion so you see your first visible win fast —
+          then locks a full 8-week protocol.
         </p>
+
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <Button href="#wizard">
-            <Wand2 size={16} /> Get your plan in 2 minutes
+            <Wand2 size={16} /> Get my plan in 2 minutes
           </Button>
           <Button variant="outline" href="#offer">
             <Percent size={16} /> Launch price: {formatINR(INTRO_PRICE)}
           </Button>
         </div>
-        <div className="mt-5 flex items-center gap-3 text-xs text-white/60">
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            <Clock size={14} /> 8‑week program
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            <ShieldCheck size={14} /> Double guarantee
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            <Star size={14} /> AI‑guided support
-          </span>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-white/60">
+          <Chip>
+            <Clock size={14} /> First win in ~7 days
+          </Chip>
+          <Chip>
+            <ShieldCheck size={14} /> 30-day love-it guarantee
+          </Chip>
+          <Chip>
+            <Star size={14} /> AI-guided, step-by-step
+          </Chip>
         </div>
+
         <SeatMeter />
         <p className="mt-2 text-xs text-white/60">
           Timer — {isOver ? "renewing soon" : `${h}h ${m}m ${s}s left`}.{" "}
@@ -827,47 +940,8 @@ function Hero() {
           .
         </p>
       </div>
-      <ValueEquationCard />
+      <OfferCard />
     </section>
-  );
-}
-
-function ValueEquationCard() {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="mb-2 text-sm font-bold">
-        Why this is a no‑brainer (Value Equation)
-      </div>
-      <ul className="space-y-2 text-sm text-white/80">
-        <li className="flex items-start gap-2">
-          <CircleCheck className="mt-0.5" size={16} />{" "}
-          <span>
-            <strong>Dream outcome ↑</strong>: clearer skin + confidence.
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CircleCheck className="mt-0.5" size={16} />{" "}
-          <span>
-            <strong>Perceived likelihood ↑</strong>: AI‑assisted plan, cohort
-            support, weekly reviews.
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CircleCheck className="mt-0.5" size={16} />{" "}
-          <span>
-            <strong>Time delay ↓</strong>: first visible win targeted in 7 days;
-            full protocol in 8 weeks.
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CircleCheck className="mt-0.5" size={16} />{" "}
-          <span>
-            <strong>Effort & sacrifice ↓</strong>: 2‑minute routine, product
-            picks done for you.
-          </span>
-        </li>
-      </ul>
-    </div>
   );
 }
 
@@ -968,12 +1042,11 @@ function OfferWizard({ dev, onAnalysisChange, userApiKey }) {
               hasAnalyzedOnce={hasAnalyzedOnce}
             />
           )}
-          {step === 3 && (
-            <StepResults
-              DEV={dev}
-              analyzer={{ result, status }}
+          {step === 3 && result && (
+            <Step3_Offer_Redesign
+              analyzer={result}
+              onCheckout={() => handleNext(4)}
               onPrev={() => handleNext(2)}
-              onNext={() => handleNext(4)}
             />
           )}
           {step === 4 && <Checkout onBack={() => handleNext(3)} />}
@@ -1231,7 +1304,7 @@ function StepCaptureAnalyze({
   return (
     <Card
       title="Upload Your Selfies"
-      subtitle="Provide 3 photos and your API key for a GPT-5 powered analysis."
+      subtitle="Provide 3 photos for a GPT-5 powered analysis."
     >
       <div className="grid grid-cols-3 gap-2 md:gap-4">
         {["front", "left", "right"].map((slot) => (
@@ -1281,17 +1354,6 @@ function StepCaptureAnalyze({
         ))}
       </div>
 
-      {analyzer.status === "missing_key" && (
-        <div className="mt-4 rounded-xl border border-amber-300/40 bg-amber-400/10 p-3 text-amber-200">
-          Please provide your API key below to start the analysis.
-        </div>
-      )}
-      {analyzer.status === "invalid_key" && (
-        <div className="mt-4 rounded-xl border border-rose-300/40 bg-rose-400/10 p-3 text-rose-200">
-          The API key you entered appears to be invalid. Please check it and
-          save again.
-        </div>
-      )}
       {analyzer.status === "error" && (
         <div className="mt-4 rounded-xl border border-rose-300/40 bg-rose-400/10 p-3 text-rose-200">
           Could not analyze. Please try again with different photos.
@@ -1316,224 +1378,283 @@ function StepCaptureAnalyze({
   );
 }
 
-function StepResults({ DEV, analyzer, onPrev, onNext }) {
-  const blurred = !DEV;
+// -------------------- NEW STEP 3 COMPONENT --------------------
+const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
+  const ANCHOR_PRICE = 2999;
+  const { CheckCircle2: Check, ShieldCheck: Shield } = {
+    CheckCircle2,
+    ShieldCheck,
+  };
 
-  if (!analyzer.result) {
+  const Wrap = ({ children }) => (
+    <div className="mx-auto max-w-6xl">{children}</div>
+  );
+
+  const LocalCard = ({ className = "", children }) => (
+    <div
+      className={`rounded-2xl border border-white/10 bg-white/5 p-5 shadow ${className}`}
+    >
+      {children}
+    </div>
+  );
+
+  const Badge = ({ tone = "slate", children }) => {
+    const map = {
+      emerald: "border-emerald-300/40 bg-emerald-400/10 text-emerald-300",
+      rose: "border-rose-300/40 bg-rose-400/10 text-rose-200",
+      amber: "border-amber-300/40 bg-amber-400/10 text-amber-200",
+      slate: "border-white/10 bg-white/10 text-white/80",
+    };
     return (
-      <Card title="Analysis Results">
-        <p>Your analysis results will appear here shortly.</p>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <Button
-            className="w-full sm:w-auto"
-            variant="outline"
-            onClick={onPrev}
+      <span
+        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${map[tone]}`}
+      >
+        {children}
+      </span>
+    );
+  };
+
+  const BlurLock = ({ label = "Unlock to view" }) => (
+    <div className="pointer-events-none absolute inset-0 grid place-content-center rounded-xl bg-black/40">
+      <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80">
+        <Lock size={14} /> {label}
+      </div>
+    </div>
+  );
+
+  function TopBar({ result }) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Badge tone="emerald">AI source: {result.source}</Badge>
+          <Badge>type: {result.skinType}</Badge>
+          <Badge
+            tone={
+              result.severity === "severe"
+                ? "rose"
+                : result.severity === "moderate"
+                ? "amber"
+                : "emerald"
+            }
           >
-            <ArrowLeft size={16} /> Back to Upload
-          </Button>
+            severity: {result.severity}
+          </Badge>
         </div>
-      </Card>
+        <div className="flex items-center gap-2 text-sm text-white/70">
+          <Sparkles size={16} /> Tough-love, then a plan. No fluff.
+        </div>
+      </div>
+    );
+  }
+
+  function ScorePills({ result }) {
+    const Pill = ({ label, score, tone = "rose" }) => (
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
+        <span
+          className={`text-xs ${
+            tone === "rose" ? "text-rose-300" : "text-emerald-300"
+          }`}
+        >
+          {label}
+        </span>
+        <span
+          className={`text-lg font-black ${
+            tone === "rose" ? "text-rose-300" : "text-emerald-300"
+          }`}
+        >
+          <span className="blur-sm select-none">
+            {`${score}`.length > 1 ? `${score}`.slice(0, -1) : "0"}
+          </span>
+          {`${score}`.slice(-1)}
+        </span>
+        <span className="text-xs text-white/60">/100</span>
+      </div>
+    );
+    return (
+      <div className="grid grid-cols-1 gap-3 sm:w-auto">
+        <Pill label="Potential" score={result.potentialRating} tone="emerald" />
+      </div>
+    );
+  }
+
+  function ToughLove({ result }) {
+    const byKey = Object.fromEntries(
+      result.scores.map((s) => [s.key, s.score])
+    );
+
+    const lines = result.summaryPoints || [];
+    if (!lines.length) {
+      // Fallback if summary points are not generated
+      if ((byKey.oiliness || 0) > 70)
+        lines.push(
+          "Your T-zone's high shine suggests overactive oil glands, which can clog pores if not managed."
+        );
+      if ((byKey.redness || 0) > 65)
+        lines.push(
+          "Visible redness points to an inflamed skin barrier, making it vulnerable to irritation and breakouts."
+        );
+      if ((byKey.clarity || 0) < 60)
+        lines.push(
+          "Low clarity indicates that your current routine isn't effectively preventing new blemishes, risking post-acne marks."
+        );
+      if (!lines.length)
+        lines.push(
+          "Your skin is in a good place, but a targeted routine is crucial to prevent future issues and maintain its health."
+        );
+    }
+
+    const sev = result.overallRating;
+
+    const MetricChip = ({ label, score }) => {
+      const getTone = () => {
+        if (["Clarity", "Texture", "Symmetry", "Jawline"].includes(label)) {
+          if (score < 60) return "rose";
+          if (score < 80) return "amber";
+          return "emerald";
+        }
+        if (score > 65) return "rose";
+        if (score > 40) return "amber";
+        return "emerald";
+      };
+      return (
+        <Badge tone={getTone()}>
+          {label}: {score}
+        </Badge>
+      );
+    };
+
+    return (
+      <LocalCard className="bg-black/30">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white/80">
+          <Flame size={16} /> Overall Rating ({sev}/100)
+        </div>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {result.scores.map((s) => (
+            <MetricChip
+              key={s.key}
+              label={s.label.replace("Skin ", "").replace(" Smoothness", "")}
+              score={s.score}
+            />
+          ))}
+        </div>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-white/90">
+          {lines.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs text-white/50">
+          This is a critical analysis to build your targeted plan.
+        </p>
+      </LocalCard>
+    );
+  }
+
+  function PreviewBundle({ result }) {
+    return (
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
+          <h4 className="text-lg font-semibold">Your custom routine</h4>
+          <p className="text-sm text-white/70">
+            First 14 days • morning & night
+          </p>
+          <div className="relative mt-3 overflow-hidden rounded-xl">
+            <div className="blur-sm select-none p-3 text-sm text-white/80">
+              <ul className="space-y-1">
+                {result.routineOutline.AM.slice(0, 3).map((x, i) => (
+                  <li key={`m-${i}`}>• AM: {x}</li>
+                ))}
+                {result.routineOutline.PM.slice(0, 3).map((x, i) => (
+                  <li key={`n-${i}`}>• PM: {x}</li>
+                ))}
+                <li>• Product picks & how-to videos…</li>
+              </ul>
+            </div>
+            <BlurLock label="Preview blurred" />
+          </div>
+          <p className="mt-2 text-xs text-white/50">
+            Instantly visible after unlock.
+          </p>
+        </div>
+        <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
+          <h4 className="text-lg font-semibold">Looksmax Playbook</h4>
+          <p className="text-sm text-white/70">41-page PDF</p>
+          <div className="relative mt-3 h-28 overflow-hidden rounded-xl border border-white/10 bg-black/40" />
+          <BlurLock label="Preview blurred" />
+          <p className="mt-2 text-xs text-white/50">
+            Covers skin • hair • jawline and more.
+          </p>
+        </div>
+        <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
+          <h4 className="text-lg font-semibold">Personalized PDF Report</h4>
+          <p className="text-sm text-white/70">Your scores & priorities</p>
+          <div className="relative mt-3 overflow-hidden rounded-xl p-3">
+            <div className="blur-sm select-none text-sm text-white/80">
+              <p>
+                • Skin Type:{" "}
+                <span className="capitalize">{result.skinType}</span>
+              </p>
+              <p>• Priorities: {result.flags[0] || "clarity"}…</p>
+              <p>• Full scoreboard & triggers…</p>
+            </div>
+            <BlurLock label="Preview blurred" />
+          </div>
+          <p className="mt-2 text-xs text-white/50">
+            Delivered as a downloadable PDF.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  function OfferBox({ onCheckout, onPrev }) {
+    return (
+      <LocalCard className="bg-gradient-to-b from-white/10 to-white/[0.06]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-black text-white">
+                {formatINR(INTRO_PRICE)}
+              </div>
+            </div>
+            <div className="mt-1 text-xs text-white/60">
+              One-time unlock • lifetime access
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={onPrev} variant="ghost">
+              <ArrowLeft size={16} /> Back
+            </Button>
+            <Button onClick={onCheckout}>
+              <Lock size={16} /> Unlock my plan <ArrowRight size={16} />
+            </Button>
+          </div>
+        </div>
+      </LocalCard>
     );
   }
 
   return (
-    <Card title="Your AI Analysis is Complete!">
-      <div className="space-y-4">
-        <ClinicalReport result={analyzer.result} blurred={blurred} />
-        <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="mb-1 text-sm font-semibold">
-            AI Analysis Ratings{" "}
-            <span className="text-xs text-white/50">
-              (source: {analyzer.result.source})
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-center">
-              <div className="text-xs text-white/60">Overall Rating</div>
-              <div className="text-4xl font-black text-rose-400">
-                <span className={clsx(blurred && "blur-xl")}>
-                  {analyzer.result.overallRating}
-                </span>
-                <span>/100</span>
-              </div>
+    <div className="bg-slate-900 text-white">
+      <Wrap>
+        <TopBar result={analyzer} />
+        <div className="mt-6 grid gap-6">
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-2xl font-black">Your AI Skin Audit</h1>
+              <ScorePills result={analyzer} />
             </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-center">
-              <div className="text-xs text-white/60">Potential Rating</div>
-              <div className="text-4xl font-black text-emerald-300">
-                <span className={clsx(blurred && "blur-xl")}>
-                  {analyzer.result.potentialRating}
-                </span>
-                <span>/100</span>
-              </div>
-            </div>
+            <ToughLove result={analyzer} />
+            <PreviewBundle result={analyzer} />
+            <div className="text-xs text-white/50">{analyzer.disclaimer}</div>
+          </div>
+          <div className="space-y-6">
+            <OfferBox onCheckout={onCheckout} onPrev={onPrev} />
           </div>
         </div>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <Button
-            className="w-full sm:w-auto"
-            variant="outline"
-            onClick={onPrev}
-          >
-            <ArrowLeft size={16} /> Re-upload Photos
-          </Button>
-          <Button className="w-full sm:w-auto" onClick={onNext}>
-            <Lock size={16} /> Unlock Full Plan & Checkout{" "}
-            <ArrowRight size={16} />
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// -------------------- CLINICAL REPORT --------------------
-function ClinicalReport({ result, blurred }) {
-  const m = result.metrics || {};
-
-  const metricInterpretations = {
-    clarity: {
-      title: "Insecurity: Blemishes & Uneven Tone",
-      getInterpretation: (score) => {
-        if (score < 50)
-          return "The analysis indicates significant blemishes, post-acne marks, or uneven skin tone are currently visible. This is a primary area for improvement, and a consistent routine will focus on reducing active breakouts and fading marks.";
-        if (score < 75)
-          return "Your skin shows some signs of breakouts and uneven tone. While not severe, there's a clear opportunity to improve overall clarity and achieve a more uniform complexion.";
-        return "Your skin clarity is good. The focus will be on maintaining this, preventing future breakouts, and refining any minor imperfections for a radiant finish.";
-      },
-    },
-    redness: {
-      title: "Insecurity: Redness & Irritation",
-      getInterpretation: (score) => {
-        if (score > 65)
-          return "Significant redness and signs of inflammation were detected. This suggests a compromised skin barrier. Your routine will prioritize calming ingredients and gentle actives to soothe irritation and build resilience.";
-        if (score > 40)
-          return "Moderate redness is present, likely around active breakout areas or sensitive zones like the nose and cheeks. We will focus on reducing this inflammation without causing further irritation.";
-        return "Your skin shows minimal redness, indicating a healthy skin barrier. The plan will be to keep it that way while targeting other concerns.";
-      },
-    },
-    texture: {
-      title: "Insecurity: Rough Texture & Bumps",
-      getInterpretation: (score) => {
-        if (score < 60)
-          return "The analysis indicates noticeable surface texture, such as closed comedones (bumps under the skin) or roughness. Exfoliating actives will be key to smoothing this out over time.";
-        if (score < 80)
-          return "There are minor textural irregularities. A targeted routine can help refine your skin's surface for a smoother, more polished look.";
-        return "Your skin texture is already quite smooth. The goal will be maintenance and ensuring new breakouts don't lead to textural changes.";
-      },
-    },
-    oiliness: {
-      title: "Insecurity: Oiliness & Shine",
-      getInterpretation: (score) => {
-        if (score > 70)
-          return "The analysis indicates excess sebum production, leading to a visible shine, particularly in the T-zone. Your routine will incorporate ingredients to help regulate oil without stripping the skin.";
-        if (score > 50)
-          return "Your skin has a tendency towards oiliness, which can contribute to clogged pores. We'll focus on balancing oil levels for a more matte, comfortable finish.";
-        return "Your skin's oil production appears balanced. The plan will ensure products don't disrupt this natural equilibrium.";
-      },
-    },
-  };
-
-  const relevantScores = result.scores.filter(
-    (s) => metricInterpretations[s.key]
-  );
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4 space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white/90">
-        <span>AI Clinical Report</span>
-        <Badge tone="emerald">source: {result.source}</Badge>
-        <Badge>{`type: ${result.skinType || "uncertain"}`}</Badge>
-        <Badge
-          tone={
-            result.severity === "severe"
-              ? "rose"
-              : result.severity === "moderate"
-              ? "amber"
-              : "emerald"
-          }
-        >{`severity: ${result.severity || "uncertain"}`}</Badge>
-      </div>
-
-      {relevantScores.map(({ key, label, score }) => (
-        <div
-          key={key}
-          className="rounded-lg border border-white/10 bg-white/5 p-3"
-        >
-          <h4 className="font-semibold text-white">
-            {metricInterpretations[key].title}
-          </h4>
-          <p className="text-xs text-white/60 mb-2">
-            {label}: <span className="font-bold text-white">{score}/100</span>
-          </p>
-          <p className="text-sm text-white/80">
-            {metricInterpretations[key].getInterpretation(m[key] || score)}
-          </p>
-        </div>
-      ))}
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="mb-1 text-sm font-semibold">Likely contributors</div>
-          <ul
-            className={clsx(
-              "list-disc pl-5 text-sm text-white/80",
-              blurred && "blur-sm"
-            )}
-          >
-            {(result.possibleTriggers || []).map((t, i) => (
-              <li key={i}>{t}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="mb-1 text-sm font-semibold">
-            Non‑medical actions (start now)
-          </div>
-          <ul
-            className={clsx(
-              "list-disc pl-5 text-sm text-white/80",
-              blurred && "blur-sm"
-            )}
-          >
-            {(result.nonMedicalActions || []).map((t, i) => (
-              <li key={i}>{t}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
-        <div className="mb-1 font-semibold">Routine outline (preview)</div>
-        <div
-          className={clsx(
-            "grid grid-cols-1 gap-3 md:grid-cols-2",
-            blurred && "blur-sm"
-          )}
-        >
-          <div>
-            <div className="text-xs text-white/60">AM</div>
-            <ul className="list-inside space-y-1 text-white/80">
-              {(result.routineOutline?.AM || []).map((x, i) => (
-                <li key={i}>• {x}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <div className="text-xs text-white/60">PM</div>
-            <ul className="list-inside space-y-1 text-white/80">
-              {(result.routineOutline?.PM || []).map((x, i) => (
-                <li key={i}>• {x}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <p className="mt-2 text-xs text-white/50">
-          {result.disclaimer || "Educational estimate. Not medical advice."}
-        </p>
-      </div>
+      </Wrap>
     </div>
   );
-}
+};
 
 // -------------------- OFFER STACK --------------------
 function OfferStack() {
@@ -1564,8 +1685,8 @@ function OfferStack() {
           features={[
             "Everything in Starter",
             "1:1 kickoff call (15m)",
-            "Sensitive‑skin protocol",
-            "SOS breakout mini‑plan",
+            "Sensitive-skin protocol",
+            "SOS breakout mini-plan",
           ]}
           cta="Join Pro"
           highlight
@@ -1576,7 +1697,7 @@ function OfferStack() {
           badge="Premium"
           features={[
             "Everything in Pro",
-            "Two 1:1 check‑ins",
+            "Two 1:1 check-ins",
             "WhatsApp priority line",
             "Product replacements guidance",
           ]}
@@ -1624,7 +1745,7 @@ function PlanCard({ name, price, badge, features, cta, highlight }) {
         <ShoppingCart size={16} /> {cta}
       </Button>
       <p className="mt-2 text-xs text-white/60">
-        Pay‑in‑full bonus applied at checkout.
+        Pay-in-full bonus applied at checkout.
       </p>
     </div>
   );
@@ -1632,10 +1753,10 @@ function PlanCard({ name, price, badge, features, cta, highlight }) {
 
 function OfferMath() {
   const stack = [
-    { label: "8‑week program & playbook", value: 7999, icon: FileText },
+    { label: "8-week program & playbook", value: 7999, icon: FileText },
     { label: "Cohort & community", value: 1999, icon: MessageSquare },
-    { label: "Sensitive‑skin protocol", value: 1499, icon: FlaskConical },
-    { label: "SOS breakout mini‑plan", value: 999, icon: Sun },
+    { label: "Sensitive-skin protocol", value: 1499, icon: FlaskConical },
+    { label: "SOS breakout mini-plan", value: 999, icon: Sun },
   ];
   const total = stack.reduce((a, b) => a + b.value, 0);
   return (
@@ -1713,7 +1834,7 @@ function Checkout({ onBack }) {
 
   const payLabel =
     plan === "split"
-      ? `Pay ${formatINR(splitPart + (bump ? BUMP_PRICE : 0))} now — Split‑pay`
+      ? `Pay ${formatINR(splitPart + (bump ? BUMP_PRICE : 0))} now — Split-pay`
       : `Pay ${formatINR(
           INTRO_PRICE + (bump ? BUMP_PRICE : 0)
         )} — Open Checkout`;
@@ -1743,11 +1864,11 @@ function Checkout({ onBack }) {
                   onChange={() => setPlan("one")}
                 />
                 <div>
-                  <div className="font-semibold">One‑time</div>
+                  <div className="font-semibold">One-time</div>
                   <div className="text-sm text-white/70">
                     {formatINR(INTRO_PRICE)}{" "}
                     <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
-                      Pay‑in‑full bonus
+                      Pay-in-full bonus
                     </span>
                   </div>
                 </div>
@@ -1767,7 +1888,7 @@ function Checkout({ onBack }) {
                   onChange={() => setPlan("split")}
                 />
                 <div>
-                  <div className="font-semibold">Split‑pay</div>
+                  <div className="font-semibold">Split-pay</div>
                   <div className="text-sm text-white/70">
                     2 × {formatINR(splitPart)} (Total {formatINR(splitTotal)})
                   </div>
@@ -1793,10 +1914,10 @@ function Checkout({ onBack }) {
                 />
                 <div>
                   <div className="font-semibold">
-                    Add SOS Product Links + 3 Micro‑Videos
+                    Add SOS Product Links + 3 Micro-Videos
                   </div>
                   <div className="text-xs text-white/70">
-                    One‑click list of products + how‑to apply (optional)
+                    One-click list of products + how-to apply (optional)
                   </div>
                 </div>
               </div>
@@ -1824,7 +1945,7 @@ function Checkout({ onBack }) {
             </Button>
           </div>
           <p className="mt-3 text-xs text-white/60">
-            By continuing you agree to fair‑use, no‑medical‑advice, and
+            By continuing you agree to fair-use, no-medical-advice, and
             guarantee terms.
           </p>
         </div>
@@ -1849,7 +1970,7 @@ function Checkout({ onBack }) {
           <div className="mt-3 rounded-lg border border-emerald-300/30 bg-emerald-400/10 p-3 text-sm">
             <div className="mb-1 font-semibold">Double Guarantee</div>
             <p className="text-white/80">
-              30‑day money‑back + Results‑based support extension if no visible
+              30-day money-back + Results-based support extension if no visible
               improvement by week 8.
             </p>
           </div>
@@ -1865,7 +1986,7 @@ function BonusesStrong() {
     {
       title: "Clear Skin Cheatsheet (PDF)",
       value: 499,
-      blurb: "One‑pager you’ll actually follow.",
+      blurb: "One-pager you’ll actually follow.",
     },
     {
       title: "Ingredient Decoder (mobile)",
@@ -1887,7 +2008,7 @@ function BonusesStrong() {
         />
         <div className="relative rounded-3xl border border-emerald-300/40 bg-slate-900/50 p-6">
           <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
-            Fast‑action bonuses
+            Fast-action bonuses
           </div>
           <h3 className="text-2xl font-extrabold">
             Lock these in before the timer ends
@@ -1933,7 +2054,7 @@ function Guarantees() {
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="mb-1 text-sm font-bold">
-            <ShieldCheck className="mr-1 inline" size={16} /> 30‑day Money‑Back
+            <ShieldCheck className="mr-1 inline" size={16} /> 30-day Money-Back
           </div>
           <p className="text-sm text-white/80">
             Try it for 30 days. If you don’t love it, email support—full refund.
@@ -1946,7 +2067,7 @@ function Guarantees() {
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="mb-1 text-sm font-bold">
-            <ShieldCheck className="mr-1 inline" size={16} /> Results‑Based
+            <ShieldCheck className="mr-1 inline" size={16} /> Results-Based
           </div>
           <p className="text-sm text-white/80">
             Follow the weekly plan. If no visible improvement by week 8, we’ll
@@ -1989,7 +2110,7 @@ function Testimonials() {
       name: "Ayesha K.",
       role: "Student",
       quote:
-        "“AI‑assisted routine gave me a 7‑day win—stuck to it because it was so simple.”",
+        "“AI-assisted routine gave me a 7-day win—stuck to it because it was so simple.”",
     },
     {
       name: "Rohit S.",
@@ -2049,9 +2170,9 @@ function WhoNotFor() {
       <h3 className="text-2xl font-bold">Who this is NOT for</h3>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-white/80">
         <li>
-          If you expect prescription‑level results without medical supervision.
+          If you expect prescription-level results without medical supervision.
         </li>
-        <li>If you won’t follow a 2‑minute daily routine for 14 days.</li>
+        <li>If you won’t follow a 2-minute daily routine for 14 days.</li>
         <li>
           If you want luxury products only (we optimize for budget first).
         </li>
@@ -2066,9 +2187,9 @@ function Quickstart() {
       <h3 className="text-2xl font-bold">Your first 24 hours</h3>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { h: "T‑0h", t: "Upload selfies & get plan" },
+          { h: "T-0h", t: "Upload selfies & get plan" },
           { h: "+2h", t: "Get starter kit (links provided)" },
-          { h: "+24h", t: "First routine check‑in (2 minutes)" },
+          { h: "+24h", t: "First routine check-in (2 minutes)" },
         ].map((b, i) => (
           <div
             key={i}
@@ -2091,12 +2212,12 @@ function FAQ() {
       a: "No. Educational guidance only. Consult a dermatologist for medical concerns.",
     },
     {
-      q: "Money‑back terms?",
-      a: "30‑day no‑questions refund. Results guarantee extends help for another 8 weeks if needed. See policy.",
+      q: "Money-back terms?",
+      a: "30-day no-questions refund. Results guarantee extends help for another 8 weeks if needed. See policy.",
     },
     {
       q: "Sensitive skin?",
-      a: "We bias fragrance‑free gentle picks; ramp actives slowly.",
+      a: "We bias fragrance-free gentle picks; ramp actives slowly.",
     },
     {
       q: "Is the AI analysis accurate?",
@@ -2346,4 +2467,68 @@ function runUnitTests() {
   } catch (e) {
     console.error("❌ Unit test failed:", e.message || e);
   }
+}
+
+// -------------------- APP --------------------
+export default function App() {
+  useSEO();
+  const DEV = useDevMode();
+  const [analysisState, setAnalysisState] = useState({
+    status: "waiting",
+    progress: 0,
+  });
+  const [userApiKey] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const u = new URL(window.location.href);
+      const flag = (u.searchParams.get("tests") || "").toLowerCase();
+      if (["1", "true", "yes", "on"].includes(flag)) {
+        runUnitTests();
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (analysisState.status === "analyzing") {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [analysisState.status]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      <Header dev={DEV} />
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-16 sm:pb-24">
+        <Hero />
+        <OfferWizard
+          dev={DEV}
+          onAnalysisChange={setAnalysisState}
+          userApiKey="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"
+        />
+        <OfferStack />
+        <BonusesStrong />
+        <Guarantees />
+        <Testimonials />
+        <WhoNotFor />
+        <Quickstart />
+        <Policies />
+        <FAQ />
+        <Footer />
+      </main>
+      <StickyCTA />
+      <WhatsAppNudge />
+      <AnimatePresence>
+        {analysisState.status === "analyzing" && (
+          <FullScreenAnalyzer progress={analysisState.progress} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
