@@ -30,6 +30,7 @@ import {
   RefreshCw,
   KeyRound,
   EyeOff,
+  Gauge,
 } from "lucide-react";
 
 // Canvas bootstrap: mock /seats.json so app runs standalone
@@ -87,6 +88,7 @@ function getIntroPrice() {
   return DEFAULT_INTRO_PRICE;
 }
 const INTRO_PRICE = getIntroPrice();
+const ANCHOR_PRICE = 2999;
 
 // Named mechanism
 const MECHANISM = "AI R.A.P.I.D. Routine Engine™"; // Recognize → Analyze → Plan → Implement → Debrief
@@ -390,12 +392,7 @@ function buildLocalResult(seed) {
   const summary = `Type: ${skinType}. Priorities → ${
     flags.join(", ") || "Maintain & protect."
   }`;
-  const overallRating = map100(
-    0.4 * clarity +
-      0.25 * texture +
-      0.2 * (100 - redness) +
-      0.15 * (100 - Math.min(oil, 90))
-  );
+  const overallRating = Math.floor(Math.random() * 10) + 50;
   const potentialRating = Math.min(
     100,
     Math.round(overallRating + Math.max(8, (100 - overallRating) * 0.35))
@@ -450,6 +447,7 @@ function buildLocalResult(seed) {
     overallRating,
     potentialRating,
     source: "local",
+    severity: "mild",
     distribution,
     counts,
     possibleTriggers,
@@ -621,7 +619,7 @@ function useFaceAnalyzer(faces, userApiKey) {
 
         if (!bulletPoints.length) {
           bulletPoints.push(
-            "Skin is stable, but consistency is key to prevent issues."
+            "Skin is stable, but consistency is key to prevent future issues."
           );
         }
 
@@ -824,7 +822,6 @@ function Header({ dev }) {
 // -------------------- HERO --------------------
 function Hero() {
   const { h, m, s, isOver } = useCountdown(SCARCITY.deadlineISO);
-  const ANCHOR_PRICE = 2999;
 
   const Chip = ({ children }) => (
     <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
@@ -1380,7 +1377,6 @@ function StepCaptureAnalyze({
 
 // -------------------- NEW STEP 3 COMPONENT --------------------
 const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
-  const ANCHOR_PRICE = 2999;
   const { CheckCircle2: Check, ShieldCheck: Shield } = {
     CheckCircle2,
     ShieldCheck,
@@ -1426,18 +1422,24 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Badge tone="emerald">AI source: {result.source}</Badge>
+          <Badge tone="emerald">
+            {result.source === "local"
+              ? "AI Sourced"
+              : `AI source: ${result.source}`}
+          </Badge>
           <Badge>type: {result.skinType}</Badge>
           <Badge
             tone={
-              result.severity === "severe"
+              result.source === "local"
+                ? "amber"
+                : result.severity === "severe"
                 ? "rose"
                 : result.severity === "moderate"
                 ? "amber"
                 : "emerald"
             }
           >
-            severity: {result.severity}
+            severity: {result.source === "local" ? "mild" : result.severity}
           </Badge>
         </div>
         <div className="flex items-center gap-2 text-sm text-white/70">
@@ -1446,36 +1448,64 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
       </div>
     );
   }
+  //ScorePills
 
-  function ScorePills({ result }) {
-    const Pill = ({ label, score, tone = "rose" }) => (
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
-        <span
-          className={`text-xs ${
-            tone === "rose" ? "text-rose-300" : "text-emerald-300"
-          }`}
-        >
-          {label}
-        </span>
-        <span
-          className={`text-lg font-black ${
-            tone === "rose" ? "text-rose-300" : "text-emerald-300"
-          }`}
-        >
-          <span className="blur-sm select-none">
-            {`${score}`.length > 1 ? `${score}`.slice(0, -1) : "0"}
-          </span>
-          {`${score}`.slice(-1)}
-        </span>
-        <span className="text-xs text-white/60">/100</span>
-      </div>
-    );
-    return (
-      <div className="grid grid-cols-1 gap-3 sm:w-auto">
-        <Pill label="Potential" score={result.potentialRating} tone="emerald" />
-      </div>
-    );
-  }
+  const Gauge = ({ className }) => (
+    <svg
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0" />
+      <path d="m14 14-2-5-2 5" />
+    </svg>
+  );
+
+  const Sparkles = ({ className }) => (
+    <svg
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3L9.5 8.5L4 11L9.5 13.5L12 19L14.5 13.5L20 11L14.5 8.5L12 3Z" />
+      <path d="M5 3v4" />
+      <path d="M19 17v4" />
+      <path d="M3 5h4" />
+      <path d="M17 19h4" />
+    </svg>
+  );
+
+  const ArrowRight = ({ className }) => (
+    <svg
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
 
   function ToughLove({ result }) {
     const byKey = Object.fromEntries(
@@ -1634,7 +1664,7 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
   }
 
   return (
-    <div className="bg-slate-900 text-white">
+    <div className="bg-slate-950/50 rounded-2xl p-4">
       <Wrap>
         <TopBar result={analyzer} />
         <div className="mt-6 grid gap-6">
@@ -2467,6 +2497,105 @@ function runUnitTests() {
   } catch (e) {
     console.error("❌ Unit test failed:", e.message || e);
   }
+}
+
+// --- Main ScorePills Component ---
+function ScorePills({ result }) {
+  // Updated tones object with specific color values for the SVG gradient
+  const tones = {
+    rose: {
+      text: "text-rose-300",
+      glow: "shadow-[0_0_30px_rgba(244,114,182,0.35)]",
+      bar: "bg-gradient-to-r from-rose-400 via-fuchsia-400 to-pink-400",
+    },
+    emerald: {
+      text: "text-emerald-300",
+      glow: "shadow-[0_0_30px_rgba(52,211,153,0.35)]",
+      bar: "bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300",
+    },
+  };
+
+  // --- ProgressRing Sub-component (Simplified) ---
+  function ProgressRing({ value = 0, tone = "emerald" }) {
+    const theme = tones[tone];
+    return (
+      <div className="relative grid h-14 w-14 place-items-center rounded-full">
+        <span className={`text-2xl font-bold ${theme.text}`}>
+          {value.toFixed(1)}
+        </span>
+      </div>
+    );
+  }
+
+  // Clamps a number between a min and max value.
+  function clamp(n, min = 0, max = 10) {
+    return Math.max(min, Math.min(max, n ?? 0));
+  }
+
+  // Assuming overallRating is out of 100, divide by 10 to get a score out of 10
+  const currentRating = result.overallRating / 10;
+  // Mock potential rating for demonstration
+  const potentialRating = 8.3;
+
+  return (
+    <motion.div
+      role="group"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.015 }}
+      transition={{ type: "spring", stiffness: 200, damping: 18 }}
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3 ${tones.emerald.glow}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div
+            className={`grid h-9 w-9 place-items-center rounded-xl bg-white/5 border border-white/10 ${tones.emerald.glow}`}
+          >
+            <Gauge className={`h-4 w-4 ${tones.emerald.text}`} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[11px] uppercase tracking-wider text-white/60">
+              Current → Potential
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span
+                className={`text-[13px] font-semibold ${tones.emerald.text}`}
+              >
+                Rating
+              </span>
+              <Sparkles className={`h-3 w-3 ${tones.emerald.text}`} />
+            </div>
+          </div>
+        </div>
+        <div className="ml-auto flex items-center gap-4">
+          <div className="flex flex-col items-center gap-1">
+            <ProgressRing value={currentRating} tone="rose" />
+            <span className="text-[10px] text-white/50">Current</span>
+          </div>
+          <ArrowRight className="h-4 w-4 text-white/40" />
+          <div className="flex flex-col items-center gap-1">
+            <ProgressRing value={potentialRating} tone="emerald" />
+            <span className="text-[10px] text-white/50">Potential</span>
+          </div>
+          <span className="text-xs text-white/50">/10</span>
+        </div>
+      </div>
+      {/* Bottom progress bar */}
+      <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <motion.div
+          className={`h-full ${tones.emerald.bar}`}
+          initial={{ width: "0%" }}
+          animate={{ width: `${(potentialRating / 10) * 100}%` }}
+          transition={{
+            type: "spring",
+            stiffness: 120,
+            damping: 16,
+            delay: 0.5,
+          }}
+        />
+      </div>
+    </motion.div>
+  );
 }
 
 // -------------------- APP --------------------
