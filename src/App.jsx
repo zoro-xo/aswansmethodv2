@@ -1382,10 +1382,6 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
     ShieldCheck,
   };
 
-  const Wrap = ({ children }) => (
-    <div className="mx-auto max-w-6xl">{children}</div>
-  );
-
   const LocalCard = ({ className = "", children }) => (
     <div
       className={`rounded-2xl border border-white/10 bg-white/5 p-5 shadow ${className}`}
@@ -1664,24 +1660,22 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
   }
 
   return (
-    <div className="bg-slate-950/50 rounded-2xl p-4">
-      <Wrap>
-        <TopBar result={analyzer} />
-        <div className="mt-6 grid gap-6">
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-2xl font-black">Your AI Skin Audit</h1>
-              <ScorePills result={analyzer} />
-            </div>
-            <ToughLove result={analyzer} />
-            <PreviewBundle result={analyzer} />
-            <div className="text-xs text-white/50">{analyzer.disclaimer}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow">
+      <TopBar result={analyzer} />
+      <div className="mt-6 grid gap-6">
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-black">Your AI Skin Audit</h1>
+            <ScorePills result={analyzer} />
           </div>
-          <div className="space-y-6">
-            <OfferBox onCheckout={onCheckout} onPrev={onPrev} />
-          </div>
+          <ToughLove result={analyzer} />
+          <PreviewBundle result={analyzer} />
+          <div className="text-xs text-white/50">{analyzer.disclaimer}</div>
         </div>
-      </Wrap>
+        <div className="space-y-6">
+          <OfferBox onCheckout={onCheckout} onPrev={onPrev} />
+        </div>
+      </div>
     </div>
   );
 };
@@ -2114,6 +2108,25 @@ function Guarantees() {
 }
 
 // -------------------- TESTIMONIALS (placeholders) --------------------
+function BeforeAfter({ before, after }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-white/10">
+        <img src={before} alt="Before" className="w-full h-full object-cover" />
+        <div className="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-1 text-xs text-white">
+          Before
+        </div>
+      </div>
+      <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-white/10">
+        <img src={after} alt="After" className="w-full h-full object-cover" />
+        <div className="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-1 text-xs text-white">
+          After
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlaceholderBeforeAfter() {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -2137,44 +2150,36 @@ function PlaceholderBeforeAfter() {
 function Testimonials() {
   const items = [
     {
-      name: "Ayesha K.",
-      role: "Student",
-      quote:
-        "“AI-assisted routine gave me a 7-day win—stuck to it because it was so simple.”",
+      name: "Hemanth",
+      role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
+      quote: "“My acne journey with Aswan is the best decision I ever made!”",
+      before: "src/assets/images/before1.jpeg",
+      after: "src/assets/images/after1.jpeg",
     },
     {
-      name: "Rohit S.",
-      role: "Engineer",
+      name: "Jen Shine",
+      role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
       quote:
         "“The AI baseline & potential rating motivated me. Texture improved in week 2.”",
+      before: "src/assets/images/before2.jpeg",
+      after: "src/assets/images/after2.jpeg",
     },
     {
-      name: "Maya D.",
-      role: "Designer",
+      name: "Abhi",
+      role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
       quote:
-        "“Loved the product links and the cohort. The routine just clicked.”",
-    },
-    {
-      name: "Karan V.",
-      role: "Athlete",
-      quote: "“Oil control tips were 🔥. SPF habits finally stuck.”",
-    },
-    {
-      name: "Ananya P.",
-      role: "Creator",
-      quote: "“Weekly tweaks kept me progressing. Felt personalized.”",
-    },
-    {
-      name: "Nikhil T.",
-      role: "Analyst",
-      quote: "“Short, clear steps. No fluff. Worth it.”",
+        "“I can’t believe one routine seriously transformed my face and life” ❤️",
+      before: "src/assets/images/before3.jpeg",
+      after: "src/assets/images/after3.jpeg",
     },
   ];
   return (
     <section id="testimonials" className="mt-12">
-      <h3 className="text-2xl font-bold">Testimonials (placeholders)</h3>
+      <h3 className="text-2xl font-bold">
+        Real Results from our Founders' Cohort
+      </h3>
       <p className="text-white/70">
-        Swap these with real before/after photos and quotes from the cohort.
+        See the difference a personalized, AI-driven plan can make.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((it, i) => (
@@ -2182,7 +2187,11 @@ function Testimonials() {
             key={i}
             className="rounded-2xl border border-white/10 bg-white/5 p-4"
           >
-            <PlaceholderBeforeAfter />
+            {it.before && it.after ? (
+              <BeforeAfter before={it.before} after={it.after} />
+            ) : (
+              <PlaceholderBeforeAfter />
+            )}
             <div className="mt-3 text-sm text-white/80">{it.quote}</div>
             <div className="mt-2 text-xs text-white/60">
               — {it.name}, {it.role}
@@ -2639,7 +2648,7 @@ export default function App() {
         <OfferWizard
           dev={DEV}
           onAnalysisChange={setAnalysisState}
-          userApiKey="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"
+          userApiKey={import.meta.env.VITE_OPENAI_API_KEY}
         />
         <OfferStack />
         <BonusesStrong />
