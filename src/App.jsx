@@ -2153,24 +2153,24 @@ function Testimonials() {
       name: "Hemanth",
       role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
       quote: "“My acne journey with Aswan is the best decision I ever made!”",
-      before: "src/assets/images/before1.jpeg",
-      after: "src/assets/images/after1.jpeg",
+      before: "/images/before1.jpeg",
+      after: "/images/after1.jpeg",
     },
     {
       name: "Jen Shine",
       role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
       quote:
         "“The AI baseline & potential rating motivated me. Texture improved in week 2.”",
-      before: "src/assets/images/before2.jpeg",
-      after: "src/assets/images/after2.jpeg",
+      before: "/images/before2.jpeg",
+      after: "/images/after2.jpeg",
     },
     {
       name: "Abhi",
       role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
       quote:
         "“I can’t believe one routine seriously transformed my face and life” ❤️",
-      before: "src/assets/images/before3.jpeg",
-      after: "src/assets/images/after3.jpeg",
+      before: "/images/before3.jpeg",
+      after: "/images/after3.jpeg",
     },
   ];
   return (
