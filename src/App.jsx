@@ -57,9 +57,9 @@ const SUPPORT_WHATSAPP =
   "https://wa.me/919999999999?text=I%20have%20a%20question%20about%20Acne%20Reset"; // replace
 
 const POLICY = {
-  guarantee: "/policy/guarantee",
-  scarcity: "/policy/scarcity",
-  privacy: "/policy/privacy",
+  guarantee: "/terms",
+  scarcity: "/policy",
+  privacy: "/privacy",
 };
 
 // Scarcity (real only; set a real deadline & seat cap)
@@ -258,8 +258,6 @@ function buildMockAPIResult(seed) {
       "Avoid dairy if sensitive",
     ],
     possibleTriggers: ["Hormonal fluctuations", "Stress"],
-    disclaimer:
-      "Analysis powered by GPT-5 Turbo. This is an educational estimate, not medical advice.",
     source: "gpt-5-turbo",
   };
 }
@@ -331,7 +329,6 @@ function normalizeServerOut(x) {
       symmetry: sym,
       jawline: jaw,
     },
-    disclaimer: x?.disclaimer || "Educational estimate. Not medical advice.",
     source: x?.source || "gpt",
     summaryPoints: x?.summaryPoints || [],
   };
@@ -454,7 +451,6 @@ function buildLocalResult(seed) {
     nonMedicalActions,
     routineOutline,
     metrics,
-    disclaimer: "Educational estimate. Not medical advice.",
   };
 }
 
@@ -855,7 +851,7 @@ function Hero() {
           <ListItem>Personalized PDF report with scores & priorities</ListItem>
           <ListItem>Looksmax guide (41 pages) — bonus included</ListItem>
           <ListItem>Product shortlist (budget → premium)</ListItem>
-          <ListItem>Progress tracker & reminders</ListItem>
+          <ListItem>Progress tracker in WhatsApp</ListItem>
         </ul>
 
         <div className="mt-4 rounded-xl border border-emerald-300/30 bg-emerald-400/10 p-3 text-xs text-emerald-200">
@@ -869,7 +865,7 @@ function Hero() {
         </div>
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-          <Button href="#checkout">
+          <Button href="#offer">
             <ShoppingCart size={16} /> Unlock my plan now
           </Button>
           <Button variant="outline" href="#wizard">
@@ -1696,9 +1692,10 @@ function OfferStack() {
           badge="Best value"
           features={[
             "Personalized AM/PM routine",
-            "3 curated products",
+            "Personalized product links",
             "Weekly adjustments (8w)",
             "Community access",
+            "Whatsapp access",
           ]}
           cta="Join Starter"
         />
@@ -1708,9 +1705,9 @@ function OfferStack() {
           badge="Most popular"
           features={[
             "Everything in Starter",
-            "1:1 kickoff call (15m)",
-            "Sensitive-skin protocol",
-            "SOS breakout mini-plan",
+            "1:1 personal call (15m)",
+            "Video explaination included",
+            "Custom looksmaxxing routine",
           ]}
           cta="Join Pro"
           highlight
@@ -1723,6 +1720,7 @@ function OfferStack() {
             "Everything in Pro",
             "Two 1:1 check-ins",
             "WhatsApp priority line",
+            "Custom glow-up routine",
             "Product replacements guidance",
           ]}
           cta="Join VIP"
@@ -1778,9 +1776,17 @@ function PlanCard({ name, price, badge, features, cta, highlight }) {
 function OfferMath() {
   const stack = [
     { label: "8-week program & playbook", value: 7999, icon: FileText },
-    { label: "Cohort & community", value: 1999, icon: MessageSquare },
-    { label: "Sensitive-skin protocol", value: 1499, icon: FlaskConical },
-    { label: "SOS breakout mini-plan", value: 999, icon: Sun },
+    {
+      label: "Whatsapp & private community access",
+      value: 1999,
+      icon: MessageSquare,
+    },
+    {
+      label: "Step by Step sensitive-skin protocol",
+      value: 1499,
+      icon: FlaskConical,
+    },
+    { label: "Full Looksmaxxing Guide PDF (41 pages)", value: 999, icon: Sun },
   ];
   const total = stack.reduce((a, b) => a + b.value, 0);
   return (
@@ -1912,7 +1918,9 @@ function Checkout({ onBack }) {
                   onChange={() => setPlan("split")}
                 />
                 <div>
-                  <div className="font-semibold">Split-pay</div>
+                  <div className="font-semibold">
+                    Pay Half now & Half after the result
+                  </div>
                   <div className="text-sm text-white/70">
                     2 × {formatINR(splitPart)} (Total {formatINR(splitTotal)})
                   </div>
@@ -2008,19 +2016,20 @@ function Checkout({ onBack }) {
 function BonusesStrong() {
   const items = [
     {
-      title: "Clear Skin Cheatsheet (PDF)",
+      title: "Height growth PDF",
       value: 499,
-      blurb: "One-pager you’ll actually follow.",
+      blurb: "No BS height growth guide.",
     },
     {
-      title: "Ingredient Decoder (mobile)",
+      title: "Full Diet Plan",
       value: 599,
-      blurb: "Snap labels → know what works.",
+      blurb: "Best diet plan for your condition.",
     },
     {
-      title: "Travel Routine Builder",
+      title: "Full workout plan",
       value: 399,
-      blurb: "3 items, zero breakouts on trips.",
+      blurb:
+        "No need to waste time on youtube to search the perfect workout, its here!",
     },
   ];
   return (
@@ -2314,15 +2323,6 @@ function Footer() {
       <p>
         © {new Date().getFullYear()} Aswan — Educational content. Not medical
         advice.{" "}
-        <a
-          className="underline"
-          href={CHANNEL_URL}
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Join the community
-        </a>
-        .
       </p>
     </footer>
   );
@@ -2661,7 +2661,7 @@ export default function App() {
         <Footer />
       </main>
       <StickyCTA />
-      <WhatsAppNudge />
+      {/* <WhatsAppNudge /> */}
       <AnimatePresence>
         {analysisState.status === "analyzing" && (
           <FullScreenAnalyzer progress={analysisState.progress} />

@@ -3,11 +3,15 @@ import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
 import TermsPage from "./terms/page.jsx";
+import PolicyPage from "./policy/page.jsx";
+import PrivacySelfieData from "./privacy/page.jsx"; // ⬅️ add this
 import "./index.css";
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
   { path: "/terms", element: <TermsPage /> },
+  { path: "/policy", element: <PolicyPage /> },
+  { path: "/privacy", element: <PrivacySelfieData /> }, // ⬅️ add this
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
