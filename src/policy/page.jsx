@@ -22,7 +22,7 @@ const WHATSAPP_NUMBER_E164 = "918910069103"; // e.g., 91 + 10-digit number, digi
 const WHATSAPP_DISPLAY = "+91 8910069103"; // pretty format for display
 const SEAT_HOLD_MINUTES = 20; // how long a reserved seat is held during checkout
 const PRICE_LOCK_HOURS = 48; // if we make a mistake, we honor the prior price for this window
-const TIMEZONE_LABEL = "Asia/Kolkata (IST)"; // timers are shown and enforced in this timezone
+const TIMEZONE_LABEL = "Asia (IST)"; // timers are shown and enforced in this timezone
 
 const waLink = (text) =>
   `https://wa.me/${WHATSAPP_NUMBER_E164}?text=${encodeURIComponent(text)}`;

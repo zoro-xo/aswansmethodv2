@@ -30,7 +30,7 @@ const ANALYSIS_RETENTION_DAYS = 30; // analysis selfies & outputs
 const VERIFICATION_RETENTION_DAYS = 30; // check‑in/eligibility photos after final decision
 const LOG_RETENTION_DAYS = 90; // sanitized security/ops logs
 
-const TIMEZONE_LABEL = "Asia/Kolkata (IST)";
+const TIMEZONE_LABEL = "Asia (IST)";
 const lastUpdated = "August 25, 2025";
 
 const waLink = (text) =>

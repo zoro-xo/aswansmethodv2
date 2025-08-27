@@ -847,11 +847,17 @@ function Hero() {
         </div>
 
         <ul className="mt-4 grid gap-2">
-          <ListItem>Custom 30-day acne routine (AM/PM)</ListItem>
-          <ListItem>Personalized PDF report with scores & priorities</ListItem>
-          <ListItem>Looksmax guide (41 pages) — bonus included</ListItem>
-          <ListItem>Product shortlist (budget → premium)</ListItem>
-          <ListItem>Progress tracker in WhatsApp</ListItem>
+          <ListItem>• Full Acne-Reset course</ListItem>
+          <ListItem>• Personalized product links</ListItem>
+          <ListItem>• Full Looksmaxxing Guide & PDF</ListItem>
+          <ListItem>• Exclusive Skincare Video Courses</ListItem>
+          <ListItem>• Exclusive Haircare Videos Courses</ListItem>
+          <ListItem>• Bonus 1: Full Workout Plan</ListItem>
+          <ListItem>• Bonus 2: Full Diet Plan</ListItem>
+          <ListItem>• Bonus 3: Height increment guide</ListItem>
+          <ListItem>• Weekly adjustments (8 weeks)</ListItem>
+          <ListItem>• Community access</ListItem>
+          <ListItem>• Double guarantee</ListItem>
         </ul>
 
         <div className="mt-4 rounded-xl border border-emerald-300/30 bg-emerald-400/10 p-3 text-xs text-emerald-200">
@@ -1575,53 +1581,52 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
     return (
       <div className="grid gap-4 md:grid-cols-3">
         <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
-          <h4 className="text-lg font-semibold">Your custom routine</h4>
+          <h4 className="text-lg font-semibold">
+            Your custom AI acne-skincare routine
+          </h4>
           <p className="text-sm text-white/70">
-            First 14 days • morning & night
+            sAcne - Skincare • Product links included
           </p>
-          <div className="relative mt-3 overflow-hidden rounded-xl">
-            <div className="blur-sm select-none p-3 text-sm text-white/80">
-              <ul className="space-y-1">
-                {result.routineOutline.AM.slice(0, 3).map((x, i) => (
-                  <li key={`m-${i}`}>• AM: {x}</li>
-                ))}
-                {result.routineOutline.PM.slice(0, 3).map((x, i) => (
-                  <li key={`n-${i}`}>• PM: {x}</li>
-                ))}
-                <li>• Product picks & how-to videos…</li>
-              </ul>
-            </div>
-            <BlurLock label="Preview blurred" />
+          <div className="relative mt-3 h-45 overflow-hidden rounded-xl">
+            <img
+              src={"/public/images/routine.png"}
+              alt="Looksmax Playbook Preview"
+              className="w-full h-full object-cover" // These classes are key
+            />
+            <BlurLock label="Join to unlock" />
           </div>
           <p className="mt-2 text-xs text-white/50">
-            Instantly visible after unlock.
+            Instantly accessable after unlock inside the community.
           </p>
         </div>
         <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
-          <h4 className="text-lg font-semibold">Looksmax Playbook</h4>
+          <h4 className="text-lg font-semibold">Full Looksmaxxing Playbook</h4>
           <p className="text-sm text-white/70">41-page PDF</p>
-          <div className="relative mt-3 h-28 overflow-hidden rounded-xl border border-white/10 bg-black/40" />
-          <BlurLock label="Preview blurred" />
-          <p className="mt-2 text-xs text-white/50">
-            Covers skin • hair • jawline and more.
-          </p>
+          <div className="relative mt-3 h-45 overflow-hidden rounded-xl">
+            <img
+              src={"/public/images/pdfpreview.png"}
+              alt="Looksmax Playbook Preview"
+              className="w-full h-full object-cover" // These classes are key
+            />
+            <BlurLock label="Join to unlock" />
+          </div>
+          <p className="mt-2 text-xs text-white/50">Downloadable pdf.</p>
         </div>
         <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
-          <h4 className="text-lg font-semibold">Personalized PDF Report</h4>
-          <p className="text-sm text-white/70">Your scores & priorities</p>
-          <div className="relative mt-3 overflow-hidden rounded-xl p-3">
-            <div className="blur-sm select-none text-sm text-white/80">
-              <p>
-                • Skin Type:{" "}
-                <span className="capitalize">{result.skinType}</span>
-              </p>
-              <p>• Priorities: {result.flags[0] || "clarity"}…</p>
-              <p>• Full scoreboard & triggers…</p>
-            </div>
-            <BlurLock label="Preview blurred" />
+          <h4 className="text-lg font-semibold">Full courses with Videos</h4>
+          <p className="text-sm text-white/70">
+            For Acne, Skincare & many more • Product links included
+          </p>
+          <div className="relative mt-3 h-45 overflow-hidden rounded-xl">
+            <img
+              src={"/public/images/courses.png"}
+              alt="Looksmax Playbook Preview"
+              className="w-full h-full object-cover" // These classes are key
+            />
+            <BlurLock label="Join to unlock" />
           </div>
           <p className="mt-2 text-xs text-white/50">
-            Delivered as a downloadable PDF.
+            Instantly accessable after unlock.
           </p>
         </div>
       </div>
@@ -1691,11 +1696,17 @@ function OfferStack() {
           price={INTRO_PRICE}
           badge="Best value"
           features={[
-            "Personalized AM/PM routine",
+            "Full Acne-Reset course",
             "Personalized product links",
-            "Weekly adjustments (8w)",
+            "Full Looksmaxxing Guide & PDF",
+            "Exclusive Skincare Video Courses",
+            "Exclusive Haircare Videos Courses",
+            "Bonus 1: Full Workout Plan",
+            "Bonus 2: Full Diet Plan",
+            "Bonus 3: Height increment guide",
+            "Weekly adjustments (8 weeks)",
             "Community access",
-            "Whatsapp access",
+            "Double guarantee",
           ]}
           cta="Join Starter"
         />
@@ -1935,30 +1946,6 @@ function Checkout({ onBack }) {
             </div>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-            <label className="flex cursor-pointer items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  className="accent-emerald-400"
-                  checked={bump}
-                  onChange={(e) => setBump(e.target.checked)}
-                />
-                <div>
-                  <div className="font-semibold">
-                    Add SOS Product Links + 3 Micro-Videos
-                  </div>
-                  <div className="text-xs text-white/70">
-                    One-click list of products + how-to apply (optional)
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-semibold text-emerald-300">
-                + {formatINR(BUMP_PRICE)}
-              </div>
-            </label>
-          </div>
-
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button
               className="w-full sm:w-auto"
@@ -1976,17 +1963,28 @@ function Checkout({ onBack }) {
               <ShoppingCart size={18} /> {payLabel}
             </Button>
           </div>
-          <p className="mt-3 text-xs text-white/60">
-            By continuing you agree to fair-use, no-medical-advice, and
-            guarantee terms.
-          </p>
+          <div className="mt-3 flex items-center gap-2 text-xs text-white/70">
+            <ShieldCheck size={14} /> By continuing you agree to our
+            <a className="underline" href={POLICY.guarantee}>
+              Terms & Conditions
+            </a>
+            <a className="underline" href={POLICY.scarcity}>
+              & Policy
+            </a>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
           <h4 className="text-lg font-semibold">You're getting</h4>
           <ul className="mt-2 space-y-1 text-sm text-white/80">
-            <li>• Personalized routine</li>
-            <li>• 3 curated product picks</li>
+            <li>• Full Acne-Reset course</li>
+            <li>• Personalized product links</li>
+            <li>• Full Looksmaxxing Guide & PDF</li>
+            <li>• Exclusive Skincare Video Courses</li>
+            <li>• Exclusive Haircare Videos Courses</li>
+            <li>• Bonus 1: Full Workout Plan</li>
+            <li>• Bonus 2: Full Diet Plan</li>
+            <li>• Bonus 3: Height increment guide</li>
             <li>• Weekly adjustments (8 weeks)</li>
             <li>• Community access</li>
             <li>• Double guarantee</li>
