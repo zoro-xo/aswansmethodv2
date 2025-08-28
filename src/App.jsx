@@ -764,6 +764,7 @@ async function analyzeImageQuality(file, slot) {
 }
 
 // -------------------- HEADER --------------------
+// -------------------- HEADER --------------------
 function Header({ dev }) {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
@@ -807,18 +808,34 @@ function Header({ dev }) {
           </a>
         </nav>
         <div className="flex items-center gap-2">
+          {/* --- Desktop Buttons --- */}
           <span className="hidden rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80 sm:inline">
             {MECHANISM}
           </span>
+          <Button
+            variant="outline"
+            className="hidden sm:inline-flex text-xs"
+            href="/steps"
+          >
+            Already purchased?
+          </Button>
           <Button className="hidden sm:inline-flex" href={CHECKOUT_URL}>
             <ShoppingCart size={16} /> Join Now {formatINR(INTRO_PRICE)}
+          </Button>
+
+          {/* --- Mobile Button --- */}
+          <Button
+            variant="outline"
+            className="sm:hidden text-xs px-4 py-2"
+            href="/steps"
+          >
+            Already purchased?
           </Button>
         </div>
       </div>
     </header>
   );
 }
-
 // -------------------- HERO --------------------
 function Hero() {
   const { h, m, s, isOver } = useCountdown(SCARCITY.deadlineISO);
