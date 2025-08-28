@@ -6,6 +6,8 @@ import React, {
   useCallback,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import {
   ArrowRight,
   ArrowLeft,
@@ -50,8 +52,10 @@ if (typeof window !== "undefined") {
 }
 
 // -------------------- CONFIG --------------------
-const CHECKOUT_URL = "https://aswan.in/checkout"; // replace with real checkout
-const CHECKOUT_SPLIT_URL = "https://aswan.in/checkout-split"; // replace
+const CHECKOUT_URL = "https://payments.cashfree.com/forms/acnereset"; // replace with real checkout
+const CHECKOUT_SPLIT_URL = "https://payments.cashfree.com/forms/acneresetsplit"; // replace
+const CHECKOUT_URL_PRO = "https://payments.cashfree.com/forms/acneresetpro"; // replace with real checkout
+const CHECKOUT_URL_VIP = "https://payments.cashfree.com/forms/acneresetvip"; // replace with real checkout
 const CHANNEL_URL = "https://aswan.in/community"; // replace
 const SUPPORT_WHATSAPP =
   "https://wa.me/919999999999?text=I%20have%20a%20question%20about%20Acne%20Reset"; // replace
@@ -806,7 +810,7 @@ function Header({ dev }) {
           <span className="hidden rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80 sm:inline">
             {MECHANISM}
           </span>
-          <Button className="hidden sm:inline-flex" href="#checkout">
+          <Button className="hidden sm:inline-flex" href={CHECKOUT_URL}>
             <ShoppingCart size={16} /> Join Now {formatINR(INTRO_PRICE)}
           </Button>
         </div>
@@ -1585,11 +1589,11 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
             Your custom AI acne-skincare routine
           </h4>
           <p className="text-sm text-white/70">
-            sAcne - Skincare • Product links included
+            Acne - Skincare • Product links included
           </p>
           <div className="relative mt-3 h-45 overflow-hidden rounded-xl">
             <img
-              src={"/public/images/routine.png"}
+              src={"/images/routine.png"}
               alt="Looksmax Playbook Preview"
               className="w-full h-full object-cover" // These classes are key
             />
@@ -1604,7 +1608,7 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
           <p className="text-sm text-white/70">41-page PDF</p>
           <div className="relative mt-3 h-45 overflow-hidden rounded-xl">
             <img
-              src={"/public/images/pdfpreview.png"}
+              src={"/images/pdfpreview.png"}
               alt="Looksmax Playbook Preview"
               className="w-full h-full object-cover" // These classes are key
             />
@@ -1619,7 +1623,7 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
           </p>
           <div className="relative mt-3 h-45 overflow-hidden rounded-xl">
             <img
-              src={"/public/images/courses.png"}
+              src={"/images/courses.png"}
               alt="Looksmax Playbook Preview"
               className="w-full h-full object-cover" // These classes are key
             />
@@ -1709,6 +1713,7 @@ function OfferStack() {
             "Double guarantee",
           ]}
           cta="Join Starter"
+          checkoutUrl={CHECKOUT_URL} // <-- EDIT THIS LINE
         />
         <PlanCard
           name="Pro"
@@ -1722,6 +1727,7 @@ function OfferStack() {
           ]}
           cta="Join Pro"
           highlight
+          checkoutUrl={CHECKOUT_URL_PRO} // <-- EDIT THIS LINE
         />
         <PlanCard
           name="VIP"
@@ -1735,6 +1741,7 @@ function OfferStack() {
             "Product replacements guidance",
           ]}
           cta="Join VIP"
+          checkoutUrl={CHECKOUT_URL_VIP} // <-- EDIT THIS LINE
         />
       </div>
       <OfferMath />
@@ -1742,7 +1749,15 @@ function OfferStack() {
   );
 }
 
-function PlanCard({ name, price, badge, features, cta, highlight }) {
+function PlanCard({
+  name,
+  price,
+  badge,
+  features,
+  cta,
+  highlight,
+  checkoutUrl,
+}) {
   return (
     <div
       className={clsx(
@@ -1772,7 +1787,7 @@ function PlanCard({ name, price, badge, features, cta, highlight }) {
         ))}
       </ul>
       <Button
-        href="#checkout"
+        href={checkoutUrl}
         className={clsx(highlight && "shadow-lg shadow-emerald-500/20")}
       >
         <ShoppingCart size={16} /> {cta}
@@ -2627,6 +2642,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    (function (c, l, a, r, i, t, y) {
+      c[a] =
+        c[a] ||
+        function () {
+          (c[a].q = c[a].q || []).push(arguments);
+        };
+      t = l.createElement(r);
+      t.async = 1;
+      t.src = "https://www.clarity.ms/tag/" + i;
+      y = l.getElementsByTagName(r)[0];
+      y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", "t1waz1z3v3");
+  }, []); // The empty array [] ensures this runs only once.
+  // END OF BLOCK TO ADD
+
+  useEffect(() => {
     if (typeof document === "undefined") return;
     if (analysisState.status === "analyzing") {
       document.body.style.overflow = "hidden";
@@ -2646,7 +2677,7 @@ export default function App() {
         <OfferWizard
           dev={DEV}
           onAnalysisChange={setAnalysisState}
-          userApiKey={import.meta.env.VITE_OPENAI_API_KEY}
+          userApiKey=""
         />
         <OfferStack />
         <BonusesStrong />
@@ -2665,6 +2696,8 @@ export default function App() {
           <FullScreenAnalyzer progress={analysisState.progress} />
         )}
       </AnimatePresence>
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
