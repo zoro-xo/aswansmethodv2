@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useInRouterContext } from "react-router-dom";
 
 // Save as: src/guide/page.jsx  (pure JSX version)
@@ -41,26 +41,31 @@ function SafeLink({ to, className = "", children, ...rest }) {
 // ---------------------------------------------------------------------------
 // Data (no trailing comma on last element)
 // ---------------------------------------------------------------------------
+const imageOverrides = [
+  "images/stepssrc/step1.png",
+  "images/stepssrc/step2.png",
+  "images/stepssrc/step3.png",
+  "images/stepssrc/step4.jpg",
+  "images/stepssrc/step5.png",
+];
+
 const steps = [
   {
-    title: "Upload 3 clear selfies",
-    body: "Use natural light if possible. We guide you to capture front, left, and right angles for the best analysis.",
+    title: "You can choose the payment after analyzing your face.",
+    body: "You can either pay full in bonus or split-payment(half now & half after you get results).",
   },
   {
-    title: "Answer a few quick questions",
-    body: "Tell us about your skin type, sensitivities, and current routine so recommendations respect your context.",
+    title: "Choose any plan according to your liking.",
+    body: "If you are starting out I would suggest to go with the PRO plan.",
   },
   {
-    title: "AI analyzes your skin",
-    body: "On-device checks and server-side intelligence combine to identify key concerns and severity levels.",
+    title: "Fill up your details.",
+    body: "Remember your details - you have to enter these while joining the course & community so that we can verify.",
   },
   {
-    title: "Get your 2‑minute routine",
-    body: "We assemble a simple, step-by-step plan tailored to your goals, lifestyle, and budget.",
-  },
-  {
-    title: "Track results & adjust",
-    body: "Follow your routine, check in weekly, and we’ll adapt as your skin improves.",
+    title:
+      "After you purchase the plan click on the go back button, If you miss this don't worry - you can text us in whatsapp for the link : ",
+    body: "https://wa.me/918910069103?text=I%20have%20purchased%20the%20Acne%20Reset",
   },
 ].map((s) => ({ ...s, id: slugify(s.title) }));
 
@@ -70,7 +75,7 @@ const steps = [
 function ScreenshotPlaceholder({ index, caption }) {
   return (
     <figure className="relative w-full aspect-[16/9] rounded-2xl border border-dashed border-zinc-300/60 bg-zinc-50 dark:bg-zinc-900/40 dark:border-zinc-700/60 overflow-hidden">
-      <div className="absolute inset-0 grid place-items-center">
+      <div className="absolute inset-0 grid place-itemsplaceholder-center">
         <div className="text-center">
           <div className="text-sm uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Screenshot
@@ -87,7 +92,27 @@ function ScreenshotPlaceholder({ index, caption }) {
   );
 }
 
+// Per‑step screenshot with graceful fallback to placeholder if missing
+function Screenshot({ step, index }) {
+  const [errored, setErrored] = useState(false);
+  const path =
+    imageOverrides[index] || step.image || `screenshots/step-${index + 1}.png`;
+  const src = withBase(path);
+  if (errored) return <Screenshot step={step} index={index} />;
+  return (
+    <img
+      src={src}
+      alt={step.title || `Step ${index + 1} screenshot`}
+      className="w-full aspect-[16/9] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 object-cover bg-zinc-100 dark:bg-zinc-900"
+      loading="lazy"
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
 function StepCard({ step, index }) {
+  const isURL =
+    typeof step.body === "string" && /^https?:\/\//i.test(step.body);
   return (
     <li id={step.id} className="group">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5 items-start">
@@ -106,23 +131,35 @@ function StepCard({ step, index }) {
                 <h2 className="text-lg md:text-xl font-semibold text-zinc-900 dark:text-white">
                   {step.title}
                 </h2>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 max-w-prose">
-                  {step.body}
-                </p>
+                {isURL ? (
+                  <a
+                    href={step.body}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center text-sm text-blue-600 hover:underline dark:text-blue-400 max-w-prose break-all"
+                  >
+                    {step.body}
+                  </a>
+                ) : (
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 max-w-prose">
+                    {step.body}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="mt-4">
-              {/* Replace src with actual screenshots when ready */}
-              <ScreenshotPlaceholder index={index} caption={step.title} />
-            </div>
-
-            {/* Optional mini-notes row */}
-            <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-              Tip: Replace the placeholder with{" "}
-              <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900">
-                {withBase(`screenshots/step-${index + 1}.png`)}
-              </code>
+              {index === 0 && step.extraImage ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Screenshot step={step} index={index} />
+                  <Screenshot
+                    step={{ ...step, image: step.extraImage }}
+                    index={index}
+                  />
+                </div>
+              ) : (
+                <Screenshot step={step} index={index} />
+              )}
             </div>
           </div>
         </div>
@@ -135,6 +172,14 @@ function StepCard({ step, index }) {
 // Page (JSX)
 // ---------------------------------------------------------------------------
 export default function GuidePage() {
+  // Extra step requested by user with clickable body link
+  const extraStep = {
+    title: "Or you can join the courses & community with this link 👇",
+    body: "https://www.skool.com/acne-rest-2044/",
+    image: "images/stepssrc/step6.png",
+    id: slugify("Or you can join the courses & community with this link 👇"),
+  };
+  const allSteps = [...steps, extraStep];
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-black">
       {/* Top bar */}
@@ -148,14 +193,6 @@ export default function GuidePage() {
             <span aria-hidden>←</span>
             <span>Back</span>
           </SafeLink>
-          <div className="ml-auto">
-            <SafeLink
-              to="/"
-              className="inline-flex items-center rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 px-3 py-1.5 text-sm shadow-sm hover:opacity-90"
-            >
-              Start Analysis
-            </SafeLink>
-          </div>
         </div>
       </header>
 
@@ -164,16 +201,16 @@ export default function GuidePage() {
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div>
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-white">
-              Step‑by‑step guide
+              Step‑by‑step guide after you purchase the plan
             </h1>
             <p className="mt-2 max-w-prose text-zinc-600 dark:text-zinc-300">
-              A simple walkthrough of what to expect. Each step includes a
-              screenshot placeholder you can replace later.
+              If you have already purchased the plan and don't know what to do
+              next - follow this step by step guide.
             </p>
             {/* TOC */}
             <nav className="mt-4" aria-label="Guide steps">
               <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                {steps.map((s, i) => (
+                {allSteps.map((s, i) => (
                   <li key={s.id}>
                     <a
                       href={`#${s.id}`}
@@ -195,29 +232,11 @@ export default function GuidePage() {
       {/* Steps */}
       <main className="mx-auto max-w-5xl px-4 pb-16">
         <ol className="space-y-8">
-          {steps.map((s, i) => (
+          {allSteps.map((s, i) => (
             <StepCard key={s.id} step={s} index={i} />
           ))}
         </ol>
-
-        {/* CTA footer */}
-        <div className="mt-12 flex items-center justify-center">
-          <SafeLink
-            to="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 px-5 py-3 text-sm font-medium shadow-sm hover:opacity-90"
-          >
-            Get started
-            <span aria-hidden>→</span>
-          </SafeLink>
-        </div>
       </main>
-
-      {/* Footer note */}
-      <footer className="border-t border-zinc-200/60 dark:border-zinc-800/60">
-        <div className="mx-auto max-w-5xl px-4 py-8 text-xs text-zinc-500 dark:text-zinc-400">
-          For demonstration purposes — replace screenshots when ready.
-        </div>
-      </footer>
     </div>
   );
 }
@@ -235,7 +254,11 @@ if (
   console.groupCollapsed("[GuidePage tests]");
   try {
     console.assert(Array.isArray(steps), "steps should be an array");
-    console.assert(steps.length === 5, "steps should contain 5 items");
+    console.assert(steps.length >= 5, "steps should contain at least 5 items");
+    console.assert(
+      imageOverrides.length >= steps.length,
+      "imageOverrides should be at least steps length"
+    );
     const ids = new Set();
     steps.forEach((s, i) => {
       console.assert(
@@ -256,6 +279,10 @@ if (
       );
       console.assert(!ids.has(s.id), `step id '${s.id}' should be unique`);
       ids.add(s.id);
+      console.assert(
+        isNonEmptyString(imageOverrides[i]),
+        `imageOverrides[${i}] should be a non-empty string`
+      );
     });
     // Base path sanity
     console.assert(typeof BASE === "string", "BASE should be a string");
