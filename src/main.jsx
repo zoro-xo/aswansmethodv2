@@ -6,10 +6,12 @@ import TermsPage from "./terms/page.jsx";
 import PolicyPage from "./policy/page.jsx";
 import StepsPage from "./steps/page.jsx";
 import PrivacySelfieData from "./privacy/page.jsx";
+import RoutineMakerPage from "./routinemaker/page.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
+  { path: "/routinemaker", element: <RoutineMakerPage /> },
   { path: "/terms", element: <TermsPage /> },
   { path: "/policy", element: <PolicyPage /> },
   { path: "/privacy", element: <PrivacySelfieData /> },

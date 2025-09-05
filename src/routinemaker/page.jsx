@@ -6,8 +6,6 @@ import React, {
   useCallback,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import {
   ArrowRight,
   ArrowLeft,
@@ -35,55 +33,18 @@ import {
   Gauge,
 } from "lucide-react";
 
-// Canvas bootstrap: mock /seats.json so app runs standalone
-if (typeof window !== "undefined") {
-  const __SEATS__ = { claimed: 118 };
-  const __origFetch = window.fetch?.bind(window) || fetch;
-  window.fetch = (input, init) => {
-    if (typeof input === "string" && input === "/seats.json") {
-      return Promise.resolve(
-        new Response(JSON.stringify(__SEATS__), {
-          headers: { "Content-Type": "application/json" },
-        })
-      );
-    }
-    return __origFetch(input, init);
-  };
-}
-
 // -------------------- CONFIG --------------------
 const CHECKOUT_URL = "https://payments.cashfree.com/forms/acnereset"; // replace with real checkout
 const CHECKOUT_SPLIT_URL = "https://payments.cashfree.com/forms/acneresetsplit"; // replace
 const CHECKOUT_URL_PRO = "https://payments.cashfree.com/forms/acneresetpro"; // replace with real checkout
 const CHECKOUT_URL_VIP = "https://payments.cashfree.com/forms/acneresetvip"; // replace with real checkout
-const CHANNEL_URL = "https://aswan.in/community"; // replace
-const SUPPORT_WHATSAPP =
-  "https://wa.me/919999999999?text=I%20have%20a%20question%20about%20Acne%20Reset"; // replace
-
+const BUMP_PRICE = 299;
 const POLICY = {
   guarantee: "/terms",
   scarcity: "/policy",
   privacy: "/privacy",
 };
-
-// Scarcity (real only; set a real deadline & seat cap)
-const SCARCITY = {
-  seats: 150,
-  deadlineISO: (() => {
-    const now = new Date();
-    const local = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-    );
-    local.setHours(23, 59, 59, 0);
-    return new Date(local.getTime()).toISOString();
-  })(),
-  reason: "Founders' cohort case-study intake",
-};
-
-// Pricing
-const LIST_PRICE = 999;
 const DEFAULT_INTRO_PRICE = 749;
-const BUMP_PRICE = 299;
 function getIntroPrice() {
   if (typeof window === "undefined") return DEFAULT_INTRO_PRICE;
   const url = new URL(window.location.href);
@@ -92,9 +53,7 @@ function getIntroPrice() {
   return DEFAULT_INTRO_PRICE;
 }
 const INTRO_PRICE = getIntroPrice();
-const ANCHOR_PRICE = 2999;
-
-// Named mechanism
+const LIST_PRICE = 999;
 const MECHANISM = "AI R.A.P.I.D. Routine Engine™"; // Recognize → Analyze → Plan → Implement → Debrief
 
 // -------------------- UTILS --------------------
@@ -107,35 +66,6 @@ function formatINR(n) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(n);
-}
-function useCountdown(deadlineISO) {
-  const [t, setT] = useState(() =>
-    Math.max(0, new Date(deadlineISO).getTime() - Date.now())
-  );
-  useEffect(() => {
-    const id = setInterval(
-      () => setT(Math.max(0, new Date(deadlineISO).getTime() - Date.now())),
-      1000
-    );
-    return () => clearInterval(id);
-  }, [deadlineISO]);
-  const s = Math.floor(t / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return { h, m, s: sec, isOver: t <= 0 };
-}
-function useDevMode() {
-  const [dev, setDev] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const u = new URL(window.location.href);
-      const v = (u.searchParams.get("dev") || "").toLowerCase();
-      setDev(["1", "true", "yes", "on"].includes(v));
-    } catch {}
-  }, []);
-  return dev;
 }
 
 // -------------------- PRIMITIVES --------------------
@@ -186,12 +116,6 @@ const Card = ({ title, subtitle, children, className = "" }) => (
     <div className={clsx(title || subtitle) && "mt-4"}>{children}</div>
   </div>
 );
-
-// Value Equation score
-function valueEquationScore(v) {
-  const bottom = Math.max(1, v.time * v.effort);
-  return Math.round(((v.dream * v.likelihood) / bottom) * 100) / 100;
-}
 
 // Multi‑image preview util (front/left/right)
 function useMultiImagePreview() {
@@ -763,205 +687,8 @@ async function analyzeImageQuality(file, slot) {
   return { issues, hints };
 }
 
-// -------------------- HEADER --------------------
-// -------------------- HEADER --------------------
-function Header({ dev }) {
-  return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-400" />
-          <span className="text-sm font-bold tracking-tight">Acne Reset</span>
-          {dev && (
-            <span className="ml-2 rounded-full border border-emerald-300/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-              DEV MODE
-            </span>
-          )}
-        </div>
-        <nav className="hidden items-center gap-3 sm:flex">
-          <a className="text-sm text-white/80 hover:text-white" href="#offer">
-            Offer
-          </a>
-          <a className="text-sm text-white/80 hover:text-white" href="#bonuses">
-            Bonuses
-          </a>
-          <a
-            className="text-sm text-white/80 hover:text-white"
-            href="#guarantee"
-          >
-            Guarantee
-          </a>
-          <a
-            className="text-sm text-white/80 hover:text-white"
-            href="#testimonials"
-          >
-            Testimonials
-          </a>
-          <a className="text-sm text-white/80 hover:text-white" href="#faq">
-            FAQ
-          </a>
-          <a
-            className="text-sm text-white/80 hover:text-white"
-            href="#policies"
-          >
-            Policies
-          </a>
-        </nav>
-        <div className="flex items-center gap-2">
-          {/* --- Desktop Buttons --- */}
-          <span className="hidden rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80 sm:inline">
-            {MECHANISM}
-          </span>
-          <Button
-            variant="outline"
-            className="hidden sm:inline-flex text-xs"
-            href="/steps"
-          >
-            Already purchased?
-          </Button>
-          <Button className="hidden sm:inline-flex" href={CHECKOUT_URL}>
-            <ShoppingCart size={16} /> Join Now {formatINR(INTRO_PRICE)}
-          </Button>
-
-          {/* --- Mobile Button --- */}
-          <Button
-            variant="outline"
-            className="sm:hidden text-xs px-4 py-2"
-            href="/steps"
-          >
-            Already purchased?
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
-}
-// -------------------- HERO --------------------
-function Hero() {
-  const { h, m, s, isOver } = useCountdown(SCARCITY.deadlineISO);
-
-  const Chip = ({ children }) => (
-    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-      {children}
-    </span>
-  );
-
-  const ListItem = ({ children }) => (
-    <li className="flex items-start gap-2 text-sm text-white/80">
-      <CheckCircle2 size={16} className="mt-0.5 text-emerald-300" /> {children}
-    </li>
-  );
-
-  function OfferCard() {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-        <div className="flex items-baseline gap-2">
-          <div className="text-3xl font-black text-white">
-            {formatINR(INTRO_PRICE)}
-          </div>
-          <div className="text-white/40 line-through">
-            {formatINR(ANCHOR_PRICE)}
-          </div>
-        </div>
-        <div className="mt-1 text-xs text-white/60">
-          One-time unlock • lifetime access
-        </div>
-
-        <ul className="mt-4 grid gap-2">
-          <ListItem>• Full Acne-Reset course</ListItem>
-          <ListItem>• Personalized product links</ListItem>
-          <ListItem>• Full Looksmaxxing Guide & PDF</ListItem>
-          <ListItem>• Exclusive Skincare Video Courses</ListItem>
-          <ListItem>• Exclusive Haircare Videos Courses</ListItem>
-          <ListItem>• Bonus 1: Full Workout Plan</ListItem>
-          <ListItem>• Bonus 2: Full Diet Plan</ListItem>
-          <ListItem>• Bonus 3: Height increment guide</ListItem>
-          <ListItem>• Weekly adjustments (8 weeks)</ListItem>
-          <ListItem>• Community access</ListItem>
-          <ListItem>• Double guarantee</ListItem>
-        </ul>
-
-        <div className="mt-4 rounded-xl border border-emerald-300/30 bg-emerald-400/10 p-3 text-xs text-emerald-200">
-          <div className="font-semibold flex items-center gap-2">
-            <ShieldCheck size={14} /> 30-day love-it guarantee
-          </div>
-          <p className="mt-1 text-emerald-200/80">
-            If you don’t love it, we’ll refund you. Educational guidance — not
-            medical advice.
-          </p>
-        </div>
-
-        <div className="mt-5 flex">
-          <Button href="/routinemaker" className="w-full justify-center">
-            <Wand2 size={16} /> See How It Works
-          </Button>
-        </div>
-
-        <div className="mt-4 text-[11px] text-white/60">
-          Instant access after purchase • Secure checkout
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <section className="mb-10 grid grid-cols-1 items-center gap-8 sm:grid-cols-2">
-      <div>
-        <div className="mb-2 flex items-center gap-2 text-xs text-white/60">
-          <span className="rounded-full bg-emerald-500 px-2.5 py-0.5 font-bold text-slate-950">
-            Founders Deal
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Flame size={14} /> Ends today
-          </span>
-        </div>
-
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-          Clearer skin in 7 days — or your money back
-          <span className="block text-emerald-400">Powered by {MECHANISM}</span>
-        </h1>
-
-        <p className="mt-3 text-white/80">
-          Upload 3 selfies. Our engine builds a 2-minute routine that targets
-          oil, redness, and congestion so you see your first visible win fast —
-          then locks a full 8-week protocol.
-        </p>
-
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <Button href="/routinemaker">
-            <Wand2 size={16} /> Get My Plan - Launch Price{" "}
-            {formatINR(INTRO_PRICE)}
-          </Button>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-white/60">
-          <Chip>
-            <Clock size={14} /> First win in ~7 days
-          </Chip>
-          <Chip>
-            <ShieldCheck size={14} /> 30-day love-it guarantee
-          </Chip>
-          <Chip>
-            <Star size={14} /> AI-guided, step-by-step
-          </Chip>
-        </div>
-
-        <SeatMeter />
-        <p className="mt-2 text-xs text-white/60">
-          Timer — {isOver ? "renewing soon" : `${h}h ${m}m ${s}s left`}.{" "}
-          <a className="underline" href={POLICY.scarcity}>
-            See scarcity policy
-          </a>
-          .
-        </p>
-      </div>
-      <OfferCard />
-    </section>
-  );
-}
-
 // -------------------- WIZARD (4 steps now) --------------------
-function OfferWizard({ dev, onAnalysisChange, userApiKey }) {
+function OfferWizard({ onAnalysisChange, userApiKey }) {
   const wizardRef = useRef(null);
   const [step, setStep] = useState(1);
   const [hasAnalyzedOnce, setHasAnalyzedOnce] = useState(false);
@@ -1462,64 +1189,6 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
       </div>
     );
   }
-  //ScorePills
-
-  const Gauge = ({ className }) => (
-    <svg
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0" />
-      <path d="m14 14-2-5-2 5" />
-    </svg>
-  );
-
-  const Sparkles = ({ className }) => (
-    <svg
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 3L9.5 8.5L4 11L9.5 13.5L12 19L14.5 13.5L20 11L14.5 8.5L12 3Z" />
-      <path d="M5 3v4" />
-      <path d="M19 17v4" />
-      <path d="M3 5h4" />
-      <path d="M17 19h4" />
-    </svg>
-  );
-
-  const ArrowRight = ({ className }) => (
-    <svg
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
 
   function ToughLove({ result }) {
     const byKey = Object.fromEntries(
@@ -1528,7 +1197,6 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
 
     const lines = result.summaryPoints || [];
     if (!lines.length) {
-      // Fallback if summary points are not generated
       if ((byKey.oiliness || 0) > 70)
         lines.push(
           "Your T-zone's high shine suggests overactive oil glands, which can clog pores if not managed."
@@ -1607,7 +1275,7 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
             <img
               src={"/images/routine.png"}
               alt="Looksmax Playbook Preview"
-              className="w-full h-full object-cover" // These classes are key
+              className="w-full h-full object-cover"
             />
             <BlurLock label="Join to unlock" />
           </div>
@@ -1622,7 +1290,7 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
             <img
               src={"/images/pdfpreview.png"}
               alt="Looksmax Playbook Preview"
-              className="w-full h-full object-cover" // These classes are key
+              className="w-full h-full object-cover"
             />
             <BlurLock label="Join to unlock" />
           </div>
@@ -1637,7 +1305,7 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
             <img
               src={"/images/courses.png"}
               alt="Looksmax Playbook Preview"
-              className="w-full h-full object-cover" // These classes are key
+              className="w-full h-full object-cover"
             />
             <BlurLock label="Join to unlock" />
           </div>
@@ -1696,174 +1364,6 @@ const Step3_Offer_Redesign = ({ analyzer, onCheckout, onPrev }) => {
     </div>
   );
 };
-
-// -------------------- OFFER STACK --------------------
-function OfferStack() {
-  return (
-    <section id="offer" className="mt-12">
-      <h3 className="text-2xl font-bold">Pick your plan</h3>
-      <p className="text-white/70">
-        Good–Better–Best with premium anchoring. All plans include the core Acne
-        Reset system.
-      </p>
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <PlanCard
-          name="Starter"
-          price={INTRO_PRICE}
-          badge="Best value"
-          features={[
-            "Full Acne-Reset course",
-            "Personalized product links",
-            "Full Looksmaxxing Guide & PDF",
-            "Exclusive Skincare Video Courses",
-            "Exclusive Haircare Videos Courses",
-            "Bonus 1: Full Workout Plan",
-            "Bonus 2: Full Diet Plan",
-            "Bonus 3: Height increment guide",
-            "Weekly adjustments (8 weeks)",
-            "Community access",
-            "Double guarantee",
-          ]}
-          cta="Join Starter"
-          checkoutUrl={CHECKOUT_URL} // <-- EDIT THIS LINE
-        />
-        <PlanCard
-          name="Pro"
-          price={INTRO_PRICE + 350}
-          badge="Most popular"
-          features={[
-            "Everything in Starter",
-            "1:1 personal call (15m)",
-            "Video explaination included",
-            "Custom looksmaxxing routine",
-          ]}
-          cta="Join Pro"
-          highlight
-          checkoutUrl={CHECKOUT_URL_PRO} // <-- EDIT THIS LINE
-        />
-        <PlanCard
-          name="VIP"
-          price={1999}
-          badge="Premium"
-          features={[
-            "Everything in Pro",
-            "Two 1:1 check-ins",
-            "WhatsApp priority line",
-            "Custom glow-up routine",
-            "Product replacements guidance",
-          ]}
-          cta="Join VIP"
-          checkoutUrl={CHECKOUT_URL_VIP} // <-- EDIT THIS LINE
-        />
-      </div>
-      <OfferMath />
-    </section>
-  );
-}
-
-function PlanCard({
-  name,
-  price,
-  badge,
-  features,
-  cta,
-  highlight,
-  checkoutUrl,
-}) {
-  return (
-    <div
-      className={clsx(
-        "relative rounded-2xl border p-5 transition-all duration-300",
-        highlight
-          ? "border-emerald-400/60 bg-emerald-400/10 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20"
-          : "border-white/10 bg-white/5"
-      )}
-    >
-      {badge && (
-        <div className="absolute -top-3 left-5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-slate-950 shadow">
-          {badge}
-        </div>
-      )}
-      <div className="mb-1 text-sm font-bold">{name}</div>
-      <div className="mb-4 flex items-end gap-2">
-        <div className="text-3xl font-extrabold">{formatINR(price)}</div>
-        <div className="text-xs text-white/60 line-through">
-          {formatINR(LIST_PRICE)}
-        </div>
-      </div>
-      <ul className="mb-4 space-y-1 text-sm text-white/80">
-        {features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2">
-            <Plus size={16} className="mt-0.5 text-emerald-400" /> {f}
-          </li>
-        ))}
-      </ul>
-      <Button
-        href={checkoutUrl}
-        className={clsx(highlight && "shadow-lg shadow-emerald-500/20")}
-      >
-        <ShoppingCart size={16} /> {cta}
-      </Button>
-      <p className="mt-2 text-xs text-white/60">
-        Pay-in-full bonus applied at checkout.
-      </p>
-    </div>
-  );
-}
-
-function OfferMath() {
-  const stack = [
-    { label: "8-week program & playbook", value: 7999, icon: FileText },
-    {
-      label: "Whatsapp & private community access",
-      value: 1999,
-      icon: MessageSquare,
-    },
-    {
-      label: "Step by Step sensitive-skin protocol",
-      value: 1499,
-      icon: FlaskConical,
-    },
-    { label: "Full Looksmaxxing Guide PDF (41 pages)", value: 999, icon: Sun },
-  ];
-  const total = stack.reduce((a, b) => a + b.value, 0);
-  return (
-    <div className="mt-8 rounded-2xl border border-emerald-300/20 bg-gradient-to-br from-emerald-500/10 via-slate-900/10 to-slate-900/10 p-6">
-      <div className="mb-4 text-center">
-        <h4 className="text-xl font-bold">The Complete Value Stack</h4>
-        <p className="text-sm text-white/70">
-          Everything you get to ensure your success.
-        </p>
-      </div>
-      <div className="space-y-3">
-        {stack.map((s, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/30 p-3"
-          >
-            <div className="flex items-center gap-3">
-              <s.icon className="h-5 w-5 text-emerald-400" />
-              <span className="font-semibold">{s.label}</span>
-            </div>
-            <div className="text-sm text-white/70">
-              Value {formatINR(s.value)}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 pt-4 border-t border-white/10 text-center">
-        <p className="text-sm text-white/70">
-          Total comparable value:{" "}
-          <span className="line-through">{formatINR(total)}</span>
-        </p>
-        <p className="text-2xl font-bold">
-          Your price today starts at just{" "}
-          <span className="text-emerald-400">{formatINR(INTRO_PRICE)}</span>.
-        </p>
-      </div>
-    </div>
-  );
-}
 
 // -------------------- CHECKOUT --------------------
 function Checkout({ onBack }) {
@@ -2037,505 +1537,8 @@ function Checkout({ onBack }) {
   );
 }
 
-// -------------------- BONUSES (stronger UI) --------------------
-function BonusesStrong() {
-  const items = [
-    {
-      title: "Height growth PDF",
-      value: 499,
-      blurb: "No BS height growth guide.",
-    },
-    {
-      title: "Full Diet Plan",
-      value: 599,
-      blurb: "Best diet plan for your condition.",
-    },
-    {
-      title: "Full workout plan",
-      value: 399,
-      blurb:
-        "No need to waste time on youtube to search the perfect workout, its here!",
-    },
-  ];
-  return (
-    <section id="bonuses" className="mt-12">
-      <div className="relative">
-        <div
-          className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-emerald-500/30 via-teal-400/30 to-cyan-400/30 blur-xl"
-          aria-hidden="true"
-        />
-        <div className="relative rounded-3xl border border-emerald-300/40 bg-slate-900/50 p-6">
-          <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
-            Fast-action bonuses
-          </div>
-          <h3 className="text-2xl font-extrabold">
-            Lock these in before the timer ends
-          </h3>
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {items.map((b, i) => (
-              <div
-                key={i}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 p-4"
-              >
-                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/10 blur-2xl transition-transform group-hover:scale-125" />
-                <div className="text-sm font-bold">{b.title}</div>
-                <div className="text-xs text-white/60">
-                  Value {formatINR(b.value)}
-                </div>
-                <div className="mt-3 text-sm text-white/80">{b.blurb}</div>
-                <div className="mt-3 inline-flex items-center gap-1 text-xs text-emerald-300">
-                  <ShieldCheck size={14} /> Included for early buyers
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-white/60">
-            Bonuses expire with the countdown.{" "}
-            <a className="underline" href={POLICY.scarcity}>
-              See scarcity policy
-            </a>
-            .
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Guarantees() {
-  return (
-    <section id="guarantee" className="mt-12">
-      <h3 className="text-2xl font-bold">Double guarantee</h3>
-      <p className="text-white/70">
-        We remove the risk so you can focus on results.
-      </p>
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="mb-1 text-sm font-bold">
-            <ShieldCheck className="mr-1 inline" size={16} /> 30-day Money-Back
-          </div>
-          <p className="text-sm text-white/80">
-            Try it for 30 days. If you don’t love it, email support—full refund.
-            No forms, no drama.{" "}
-            <a className="underline" href={POLICY.guarantee}>
-              Read terms
-            </a>
-            .
-          </p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="mb-1 text-sm font-bold">
-            <ShieldCheck className="mr-1 inline" size={16} /> Results-Based
-          </div>
-          <p className="text-sm text-white/80">
-            Follow the weekly plan. If no visible improvement by week 8, we’ll
-            work with you free for 8 more weeks.{" "}
-            <a className="underline" href={POLICY.guarantee}>
-              Read terms
-            </a>
-            .
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// -------------------- TESTIMONIALS (placeholders) --------------------
-function BeforeAfter({ before, after }) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-white/10">
-        <img src={before} alt="Before" className="w-full h-full object-cover" />
-        <div className="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-1 text-xs text-white">
-          Before
-        </div>
-      </div>
-      <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-white/10">
-        <img src={after} alt="After" className="w-full h-full object-cover" />
-        <div className="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-1 text-xs text-white">
-          After
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderBeforeAfter() {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {["Before", "After"].map((label, i) => (
-        <div
-          key={i}
-          className="relative aspect-[4/5] overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-slate-800 to-slate-900"
-        >
-          <div className="absolute inset-0 grid place-content-center">
-            <div className="rounded-full bg-white/10 px-2 py-1 text-xs text-white/80">
-              {label}
-            </div>
-          </div>
-          <div className="absolute left-0 top-0 h-16 w-16 -translate-x-1/3 -translate-y-1/3 rotate-45 bg-white/5" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Testimonials() {
-  const items = [
-    {
-      name: "Hemanth",
-      role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
-      quote: "“My acne journey with Aswan is the best decision I ever made!”",
-      before: "/images/before1.jpeg",
-      after: "/images/after1.jpeg",
-    },
-    {
-      name: "Jen Shine",
-      role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
-      quote:
-        "“The AI baseline & potential rating motivated me. Texture improved in week 2.”",
-      before: "/images/before2.jpeg",
-      after: "/images/after2.jpeg",
-    },
-    {
-      name: "Abhi",
-      role: "Verified Customer ⭐️⭐️⭐️⭐️⭐️ ",
-      quote:
-        "“I can’t believe one routine seriously transformed my face and life” ❤️",
-      before: "/images/before3.jpeg",
-      after: "/images/after3.jpeg",
-    },
-  ];
-  return (
-    <section id="testimonials" className="mt-12">
-      <h3 className="text-2xl font-bold">
-        Real Results from our Founders' Cohort
-      </h3>
-      <p className="text-white/70">
-        See the difference a personalized, AI-driven plan can make.
-      </p>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((it, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
-          >
-            {it.before && it.after ? (
-              <BeforeAfter before={it.before} after={it.after} />
-            ) : (
-              <PlaceholderBeforeAfter />
-            )}
-            <div className="mt-3 text-sm text-white/80">{it.quote}</div>
-            <div className="mt-2 text-xs text-white/60">
-              — {it.name}, {it.role}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function WhoNotFor() {
-  return (
-    <section className="mt-12">
-      <h3 className="text-2xl font-bold">Who this is NOT for</h3>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-white/80">
-        <li>
-          If you expect prescription-level results without medical supervision.
-        </li>
-        <li>If you won’t follow a 2-minute daily routine for 14 days.</li>
-        <li>
-          If you want luxury products only (we optimize for budget first).
-        </li>
-      </ul>
-    </section>
-  );
-}
-
-function Quickstart() {
-  return (
-    <section className="mt-12">
-      <h3 className="text-2xl font-bold">Your first 24 hours</h3>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {[
-          { h: "T-0h", t: "Upload selfies & get plan" },
-          { h: "+2h", t: "Get starter kit (links provided)" },
-          { h: "+24h", t: "First routine check-in (2 minutes)" },
-        ].map((b, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"
-          >
-            <div className="text-xs text-white/60">{b.h}</div>
-            <div className="font-semibold">{b.t}</div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// -------------------- FAQ & POLICIES --------------------
-function FAQ() {
-  const items = [
-    {
-      q: "Is this medical advice?",
-      a: "No. Educational guidance only. Consult a dermatologist for medical concerns.",
-    },
-    {
-      q: "Money-back terms?",
-      a: "30-day no-questions refund. Results guarantee extends help for another 8 weeks if needed. See policy.",
-    },
-    {
-      q: "Sensitive skin?",
-      a: "We bias fragrance-free gentle picks; ramp actives slowly.",
-    },
-    {
-      q: "Is the AI analysis accurate?",
-      a: "Your selfies are analyzed by our AI engine to generate an educational preview. It is not a medical diagnosis.",
-    },
-  ];
-  return (
-    <section id="faq" className="mt-12">
-      <h3 className="text-2xl font-bold">FAQ</h3>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {items.map((it, i) => (
-          <details
-            key={i}
-            className="rounded-xl border border-white/10 bg-white/5 p-3"
-          >
-            <summary className="cursor-pointer list-none font-semibold">
-              {it.q}
-            </summary>
-            <p className="mt-1 text-sm text-white/70">{it.a}</p>
-          </details>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Policies() {
-  return (
-    <section id="policies" className="mt-12 text-sm">
-      <h3 className="text-2xl font-bold">Policies</h3>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-white/80">
-        <li>
-          <a className="underline" href={POLICY.guarantee}>
-            Guarantee & Refund Terms
-          </a>
-        </li>
-        <li>
-          <a className="underline" href={POLICY.scarcity}>
-            Scarcity & Timer Integrity Policy
-          </a>
-        </li>
-        <li>
-          <a className="underline" href={POLICY.privacy}>
-            Privacy (Selfie analysis & data)
-          </a>
-        </li>
-      </ul>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="mt-16 text-center text-xs text-white/50">
-      <p>
-        © {new Date().getFullYear()} Aswan — Educational content. Not medical
-        advice.{" "}
-      </p>
-    </footer>
-  );
-}
-
-// -------------------- STICKY & SUPPORT --------------------
-function StickyCTA() {
-  const style = { bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" };
-  return (
-    <div
-      id="checkout"
-      className="pointer-events-none fixed left-0 right-0 z-40"
-      style={style}
-    >
-      <div className="mx-auto max-w-6xl px-3">
-        <div className="pointer-events-auto mx-auto w-full sm:w-max rounded-xl border border-emerald-300/40 bg-emerald-500 text-slate-900 shadow-lg">
-          <a
-            href="#offer"
-            className="flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold"
-          >
-            <ShoppingCart size={18} /> Get the Acne Reset —{" "}
-            {formatINR(INTRO_PRICE)}
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WhatsAppNudge() {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setShow(true), 30000);
-    return () => clearTimeout(t);
-  }, []);
-  if (!show) return null;
-  const style = { bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" };
-  return (
-    <motion.a
-      href={SUPPORT_WHATSAPP}
-      target="_blank"
-      rel="noopener"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="fixed right-3 z-40 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm backdrop-blur"
-      style={style}
-    >
-      <MessageSquare size={16} /> Got a question? WhatsApp us
-    </motion.a>
-  );
-}
-
-// -------------------- SCARCITY WIDGET --------------------
-function SeatMeter() {
-  const [claimed, setClaimed] = useState(null);
-  useEffect(() => {
-    let active = true;
-    fetch("/seats.json")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!active) return;
-        const n = Number(d.claimed);
-        setClaimed(Number.isFinite(n) ? n : 0);
-      })
-      .catch(() => {
-        if (active) setClaimed(118);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-  const total = SCARCITY.seats;
-  const n = Math.min(Math.max(claimed ?? 0, 0), total);
-  const pct = Math.round((n / total) * 100);
-  return (
-    <div className="mt-3">
-      <div className="mb-1 flex items-center justify-between text-xs text-white/70">
-        <span>Seats claimed</span>
-        <span>
-          {n} / {total} ({pct}%)
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded bg-white/10">
-        <div className="h-2 bg-emerald-400" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-// -------------------- ROUTINE ENGINE --------------------
-function makeRoutine(intake) {
-  const p = (x) => x;
-  const baseCleanser =
-    intake.skin === "dry"
-      ? p("Gentle hydrating cleanser (AM/PM)")
-      : p("Foaming salicylic cleanser (AM/PM)");
-  const sunscreen = p("Sunscreen SPF 50 PA++++ (AM, 2-finger rule)");
-  const moisturizer =
-    intake.skin === "oily"
-      ? p("Gel moisturizer (AM/PM)")
-      : p("Ceramide moisturizer (AM/PM)");
-  let activeAM = p("2% salicylic acid toner (AM 3x/week)");
-  let activePM = p("Adapalene 0.1% (PM, pea-size, 3x/week → nightly)");
-  if (intake.severity === "severe") {
-    activeAM = p("BPO 2.5% leave-on (AM)");
-    activePM = p("Adapalene 0.1% + BPO 2.5% (PM, alternate nights)");
-  } else if (intake.severity === "moderate") {
-    activeAM = p("BPO 2.5% wash (AM)");
-    activePM = p("Adapalene 0.1% (PM)");
-  }
-  const morning = [baseCleanser, activeAM, moisturizer, sunscreen];
-  const night = [baseCleanser, activePM, moisturizer];
-  return { morning, night };
-}
-
-// -------------------- SEO TAGGING --------------------
-function useSEO() {
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    try {
-      document.title = "Acne Reset - AI Personalized Skincare Routine";
-      const head = document.head;
-      const metaK = document.createElement("meta");
-      metaK.name = "keywords";
-      metaK.content =
-        "AI skin analysis, acne, skincare, GPT, routine, dermatology, face analysis, photos, India";
-      head.appendChild(metaK);
-      const ld = {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        name: "AI Skin & Acne Analysis",
-        description:
-          "Upload selfies for AI acne analysis and personalized routine.",
-      };
-      const script = document.createElement("script");
-      script.type = "application/ld+json";
-      script.textContent = JSON.stringify(ld);
-      head.appendChild(script);
-      return () => {
-        head.removeChild(metaK);
-        head.removeChild(script);
-      };
-    } catch {}
-  }, []);
-}
-
-// -------------------- DEV TESTS --------------------
-function runUnitTests() {
-  const assert = (cond, msg) => {
-    if (!cond) throw new Error(msg);
-  };
-  try {
-    assert(
-      valueEquationScore({ dream: 4, likelihood: 3, time: 2, effort: 2 }) === 3,
-      "valueEquationScore basic"
-    );
-    assert(
-      valueEquationScore({ dream: 5, likelihood: 4, time: 1, effort: 1 }) >= 19,
-      "valueEquationScore high"
-    );
-    const r1 = makeRoutine({ skin: "dry", severity: "mild" });
-    assert(r1.morning.length === 4 && r1.night.length === 3, "routine lengths");
-    const r2 = makeRoutine({ skin: "oily", severity: "severe" });
-    assert(r2.morning.join(" ").includes("BPO"), "severe includes BPO AM");
-    const normalized = normalizeServerOut({
-      metrics: {
-        clarity: 70,
-        redness: 20,
-        oiliness: 30,
-        dryness: 10,
-        texture: 80,
-        symmetry: 90,
-        jawline: 60,
-      },
-      severity: "moderate",
-    });
-    assert(normalized.metrics.clarity === 70, "normalize metrics");
-    assert(normalized.severity === "moderate", "normalize severity");
-
-    console.log("✅ All unit tests passed");
-  } catch (e) {
-    console.error("❌ Unit test failed:", e.message || e);
-  }
-}
-
 // --- Main ScorePills Component ---
 function ScorePills({ result }) {
-  // Updated tones object with specific color values for the SVG gradient
   const tones = {
     rose: {
       text: "text-rose-300",
@@ -2549,7 +1552,6 @@ function ScorePills({ result }) {
     },
   };
 
-  // --- ProgressRing Sub-component (Simplified) ---
   function ProgressRing({ value = 0, tone = "emerald" }) {
     const theme = tones[tone];
     return (
@@ -2561,15 +1563,8 @@ function ScorePills({ result }) {
     );
   }
 
-  // Clamps a number between a min and max value.
-  function clamp(n, min = 0, max = 10) {
-    return Math.max(min, Math.min(max, n ?? 0));
-  }
-
-  // Assuming overallRating is out of 100, divide by 10 to get a score out of 10
   const currentRating = result.overallRating / 10;
-  // Mock potential rating for demonstration
-  const potentialRating = 8.3;
+  const potentialRating = result.potentialRating / 10;
 
   return (
     <motion.div
@@ -2614,7 +1609,6 @@ function ScorePills({ result }) {
           <span className="text-xs text-white/50">/10</span>
         </div>
       </div>
-      {/* Bottom progress bar */}
       <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
         <motion.div
           className={`h-full ${tones.emerald.bar}`}
@@ -2632,42 +1626,125 @@ function ScorePills({ result }) {
   );
 }
 
+function PlanCard({
+  name,
+  price,
+  badge,
+  features,
+  cta,
+  highlight,
+  checkoutUrl,
+}) {
+  return (
+    <div
+      className={clsx(
+        "relative rounded-2xl border p-5 transition-all duration-300",
+        highlight
+          ? "border-emerald-400/60 bg-emerald-400/10 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20"
+          : "border-white/10 bg-white/5"
+      )}
+    >
+      {badge && (
+        <div className="absolute -top-3 left-5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-slate-950 shadow">
+          {badge}
+        </div>
+      )}
+      <div className="mb-1 text-sm font-bold">{name}</div>
+      <div className="mb-4 flex items-end gap-2">
+        <div className="text-3xl font-extrabold">{formatINR(price)}</div>
+        <div className="text-xs text-white/60 line-through">
+          {formatINR(LIST_PRICE)}
+        </div>
+      </div>
+      <ul className="mb-4 space-y-1 text-sm text-white/80">
+        {features.map((f, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <Plus size={16} className="mt-0.5 text-emerald-400" /> {f}
+          </li>
+        ))}
+      </ul>
+      <Button
+        href={checkoutUrl}
+        className={clsx(highlight && "shadow-lg shadow-emerald-500/20")}
+      >
+        <ShoppingCart size={16} /> {cta}
+      </Button>
+      <p className="mt-2 text-xs text-white/60">
+        Pay-in-full bonus applied at checkout.
+      </p>
+    </div>
+  );
+}
+
+function OfferStack() {
+  return (
+    <section id="offer" className="mt-12">
+      <h3 className="text-2xl font-bold">Pick your plan</h3>
+      <p className="text-white/70">
+        Good–Better–Best with premium anchoring. All plans include the core Acne
+        Reset system.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <PlanCard
+          name="Starter"
+          price={INTRO_PRICE}
+          badge="Best value"
+          features={[
+            "Full Acne-Reset course",
+            "Personalized product links",
+            "Full Looksmaxxing Guide & PDF",
+            "Exclusive Skincare Video Courses",
+            "Exclusive Haircare Videos Courses",
+            "Bonus 1: Full Workout Plan",
+            "Bonus 2: Full Diet Plan",
+            "Bonus 3: Height increment guide",
+            "Weekly adjustments (8 weeks)",
+            "Community access",
+            "Double guarantee",
+          ]}
+          cta="Join Starter"
+          checkoutUrl={CHECKOUT_URL} // <-- EDIT THIS LINE
+        />
+        <PlanCard
+          name="Pro"
+          price={INTRO_PRICE + 350}
+          badge="Most popular"
+          features={[
+            "Everything in Starter",
+            "1:1 personal call (15m)",
+            "Video explaination included",
+            "Custom looksmaxxing routine",
+          ]}
+          cta="Join Pro"
+          highlight
+          checkoutUrl={CHECKOUT_URL_PRO} // <-- EDIT THIS LINE
+        />
+        <PlanCard
+          name="VIP"
+          price={1999}
+          badge="Premium"
+          features={[
+            "Everything in Pro",
+            "Two 1:1 check-ins",
+            "WhatsApp priority line",
+            "Custom glow-up routine",
+            "Product replacements guidance",
+          ]}
+          cta="Join VIP"
+          checkoutUrl={CHECKOUT_URL_VIP} // <-- EDIT THIS LINE
+        />
+      </div>
+    </section>
+  );
+}
+
 // -------------------- APP --------------------
-export default function App() {
-  useSEO();
-  const DEV = useDevMode();
+export default function RoutineEngine() {
   const [analysisState, setAnalysisState] = useState({
     status: "waiting",
     progress: 0,
   });
   const [userApiKey] = useState("");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const u = new URL(window.location.href);
-      const flag = (u.searchParams.get("tests") || "").toLowerCase();
-      if (["1", "true", "yes", "on"].includes(flag)) {
-        runUnitTests();
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    (function (c, l, a, r, i, t, y) {
-      c[a] =
-        c[a] ||
-        function () {
-          (c[a].q = c[a].q || []).push(arguments);
-        };
-      t = l.createElement(r);
-      t.async = 1;
-      t.src = "https://www.clarity.ms/tag/" + i;
-      y = l.getElementsByTagName(r)[0];
-      y.parentNode.insertBefore(t, y);
-    })(window, document, "clarity", "script", "t1waz1z3v3");
-  }, []); // The empty array [] ensures this runs only once.
-  // END OF BLOCK TO ADD
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -2682,38 +1759,19 @@ export default function App() {
   }, [analysisState.status]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <Header dev={DEV} />
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-16 sm:pb-24">
-        <Hero />
-        {/* 
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 p-4">
+      <main className="mx-auto max-w-6xl">
         <OfferWizard
-          dev={DEV}
           onAnalysisChange={setAnalysisState}
-          userApiKey=""
+          userApiKey={userApiKey}
         />
- */}
-        {/* 
-        <OfferStack />
-         */}
-        <BonusesStrong />
-        <Guarantees />
-        <Testimonials />
-        <WhoNotFor />
-        <Quickstart />
-        <Policies />
-        <FAQ />
-        <Footer />
+        {/* <OfferStack /> */}
       </main>
-      <StickyCTA />
-      {/* <WhatsAppNudge /> */}
       <AnimatePresence>
         {analysisState.status === "analyzing" && (
           <FullScreenAnalyzer progress={analysisState.progress} />
         )}
       </AnimatePresence>
-      <Analytics />
-      <SpeedInsights />
     </div>
   );
 }
