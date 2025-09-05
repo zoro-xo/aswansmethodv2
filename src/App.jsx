@@ -2365,7 +2365,7 @@ function StickyCTA() {
       <div className="mx-auto max-w-6xl px-3">
         <div className="pointer-events-auto mx-auto w-full sm:w-max rounded-xl border border-emerald-300/40 bg-emerald-500 text-slate-900 shadow-lg">
           <a
-            href="#offer"
+            href="/routinemaker"
             className="flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold"
           >
             <ShoppingCart size={18} /> Get the Acne Reset —{" "}
